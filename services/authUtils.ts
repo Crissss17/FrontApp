@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import jwtDecode from 'jwt-decode';
+import { BASE_URL } from '../config';
+
 
 
 export const refreshAccessToken = async () => {
@@ -10,7 +12,7 @@ export const refreshAccessToken = async () => {
       throw new Error('No hay refresh token disponible.');
     }
 
-    const response = await fetch('https://gonna-crest-martha-render.trycloudflare.com/auth/refresh-token', {
+    const response = await fetch(`${BASE_URL}/auth/refresh-token`, {  // Aquí también cambiamos BASE_URL
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -71,7 +73,7 @@ export const isTokenExpired = (token: string): boolean => {
 
   try {
     const decoded: any = jwtDecode(token);
-    const now = Date.now() / 1000; // Convertir a segundos
+    const now = Date.now() / 1000; 
     return decoded.exp < now;
   } catch (error) {
     console.error('Error al decodificar el token:', error);

@@ -2,11 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isTokenExpired, refreshAccessToken } from './authUtils';
 
 export const makeProtectedRequest = async (url: string, options: RequestInit = {}) => {
-  let accessToken = await AsyncStorage.getItem('accessToken'); // Debes usar await aquí
+  let accessToken = await AsyncStorage.getItem('accessToken'); 
 
   // Verificar si el accessToken está presente
   if (!accessToken) {
-    // Si no hay token, intenta refrescarlo directamente
     accessToken = await refreshAccessToken();
     if (!accessToken) {
       throw new Error('No se pudo obtener un nuevo token. Por favor, inicia sesión de nuevo.');
@@ -26,7 +25,7 @@ export const makeProtectedRequest = async (url: string, options: RequestInit = {
     ...options,
     headers: {
       ...options.headers,
-      Authorization: `Bearer ${accessToken}`, // Usar el token actualizado
+      Authorization: `Bearer ${accessToken}`, 
     },
   });
 

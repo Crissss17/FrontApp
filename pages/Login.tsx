@@ -9,6 +9,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from './types'; 
 import { Ionicons } from '@expo/vector-icons';
 import { toast } from 'react-toastify';
+import { BASE_URL } from '../config';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -61,7 +62,7 @@ const Login: React.FC = () => {
       console.log('Intentando iniciar sesión con', email);
   
       const response = await Promise.race<Response>([
-        fetch('https://gonna-crest-martha-render.trycloudflare.com/auth/login', {  // Cambia la URL a la correcta de tu backend
+        fetch(`${BASE_URL}/auth/login`, {  // Aquí cambiamos BASE_URL
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -97,6 +98,7 @@ const Login: React.FC = () => {
       }
     }
   };
+  
 
   const handleSubmit = () => {
     if (email.trim() === '' || pass.trim() === '') {
