@@ -20,14 +20,22 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.yourapp.identifier"
+      "package": "com.yourapp.identifier",
+      "permissions": [
+        "INTERNET"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "closeia",  
+    "scheme": "closeia",
     "deepLinking": {
       "enabled": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "035dbf01-1ce9-458a-a9a1-ef7751a2757d"
+      }
     }
   }
 }

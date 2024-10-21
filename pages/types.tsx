@@ -1,8 +1,6 @@
-// types.ts
 export type RootStackParamList = {
-    Login: undefined;
-    HomeLogin: undefined;
-    ForgotPass: undefined;
-    Register: undefined;
-  };
-  
+  TokenScreen: { accessToken: string; refreshToken: string };
+  ForgotPass: undefined;
+  Register: undefined;
+  Login: undefined;
+};

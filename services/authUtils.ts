@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-const jwtDecode = require('jwt-decode');
+import jwtDecode from 'jwt-decode';
+
 
 export const refreshAccessToken = async () => {
   try {
@@ -9,7 +10,7 @@ export const refreshAccessToken = async () => {
       throw new Error('No hay refresh token disponible.');
     }
 
-    const response = await fetch('http://localhost:8082/auth/refresh-token', {
+    const response = await fetch('https://gonna-crest-martha-render.trycloudflare.com/auth/refresh-token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -31,6 +32,8 @@ export const refreshAccessToken = async () => {
     throw new Error('La sesión ha expirado. Por favor, inicia sesión nuevamente.');
   }
 };
+
+
 
 export const makeProtectedRequest = async (url: string, options: RequestInit = {}) => {
   let accessToken = await AsyncStorage.getItem('accessToken');

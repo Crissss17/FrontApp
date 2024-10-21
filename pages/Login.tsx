@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Text, TextInput, View, TouchableOpacity, Alert, Platform } from 'react-native';
+import { Text, TextInput, View, TouchableOpacity, Alert, Platform, ImageBackground } from 'react-native';
 import tw from 'twrnc';
 import Spinner from 'react-native-loading-spinner-overlay';
 import { isTokenExpired, refreshAccessToken, logout } from '../services/authUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from './types'; 
+import { Ionicons } from '@expo/vector-icons';
+import { toast } from 'react-toastify';
 
-let toast: any;
-if (Platform.OS === 'web') {
-  toast = require('react-toastify').toast;
-  require('react-toastify/dist/ReactToastify.css');
-}
+type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
-const Login: React.FC<{ navigation: any }> = ({ navigation }) => {
+const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigation = useNavigation<LoginScreenNavigationProp>();
 
   useEffect(() => {
     checkSessionOnLoad();
@@ -24,24 +26,34 @@ const Login: React.FC<{ navigation: any }> = ({ navigation }) => {
     try {
       const accessToken = await AsyncStorage.getItem('accessToken');
       const refreshToken = await AsyncStorage.getItem('refreshToken');
-
+  
       if (accessToken && !isTokenExpired(accessToken)) {
         console.log('Sesión activa con accessToken válido');
-        navigation.navigate('TokenScreen', { accessToken, refreshToken });
+        navigation.navigate('TokenScreen', {
+          accessToken: accessToken || '',  // Asegurarse de que nunca sea null
+          refreshToken: refreshToken || ''  // Asegurarse de que nunca sea null
+        });
       } else if (refreshToken) {
         console.log('El accessToken ha expirado, intentando refrescar token...');
         const newAccessToken = await refreshAccessToken();
         if (newAccessToken) {
           console.log('Token refrescado exitosamente');
-          navigation.navigate('TokenScreen', { accessToken: newAccessToken, refreshToken });
+          navigation.navigate('TokenScreen', {
+            accessToken: newAccessToken,
+            refreshToken: refreshToken || ''  // Asegurarse de que nunca sea null
+          });
         } else {
           logout(navigation);
         }
+      } else {
+        console.log('Ambos tokens han caducado, redirigiendo a Login');
+        logout(navigation);
       }
     } catch (error) {
       console.error('Error en checkSessionOnLoad:', error);
     }
   };
+  
 
   const handleLogin = async (email: string, password: string) => {
     try {
@@ -49,7 +61,7 @@ const Login: React.FC<{ navigation: any }> = ({ navigation }) => {
       console.log('Intentando iniciar sesión con', email);
   
       const response = await Promise.race<Response>([
-        fetch('http://localhost:8082/auth/login', {  // <-- Aquí cambia la URL
+        fetch('https://gonna-crest-martha-render.trycloudflare.com/auth/login', {  // Cambia la URL a la correcta de tu backend
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -59,13 +71,11 @@ const Login: React.FC<{ navigation: any }> = ({ navigation }) => {
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000)) // Timeout de 10 segundos
       ]);
   
-      // Si la respuesta no es correcta, manejamos el error
       if (!response.ok) {
-        const errorData = await response.json();  // Asegúrate de que esta línea está dentro del bloque de error
+        const errorData = await response.json();
         throw new Error(errorData.message || 'Error en el inicio de sesión');
       }
   
-      // Si todo está bien, obtenemos el data
       const data = await response.json();
       const { accessToken, refreshToken } = data;
   
@@ -74,8 +84,7 @@ const Login: React.FC<{ navigation: any }> = ({ navigation }) => {
       setLoading(false);
       console.log('Inicio de sesión exitoso. Tokens almacenados.');
   
-      // Verificar si el token es válido y gestionar la sesión
-      checkSessionOnLoad();
+      checkSessionOnLoad(); // Verifica la sesión
     } catch (error: any) {
       setLoading(false);
       const errorMessage = error?.message || JSON.stringify(error);
@@ -88,8 +97,6 @@ const Login: React.FC<{ navigation: any }> = ({ navigation }) => {
       }
     }
   };
-  
-  
 
   const handleSubmit = () => {
     if (email.trim() === '' || pass.trim() === '') {
@@ -100,49 +107,51 @@ const Login: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   return (
-    <View style={tw`flex-1 bg-[#95D5B2] justify-center items-center`}>
+    <View style={tw`flex-1 justify-center items-center bg-gray-100`}>
       <Spinner visible={loading} textContent={'Cargando...'} textStyle={tw`text-white`} />
+      <View style={tw`bg-white w-80 p-6 shadow-lg rounded-xl flex flex-col gap-4 justify-center`}>
+        <View style={tw`items-center mb-4`}>
+          <Ionicons name="person-circle-outline" size={64} color="gray" />
+        </View>
+        
+        <View style={tw`flex-row items-center border rounded-xl bg-gray-100 px-3 py-2`}>
+          <Ionicons name="person-outline" size={20} color="gray" style={tw`mr-2`} />
+          <TextInput
+            style={tw`flex-1 text-base`}
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </View>
 
-      <View style={tw`bg-[#1B4332] w-80 p-6 shadow-lg rounded-xl flex flex-col gap-4 justify-center`}>
-        <Text style={tw`text-3xl text-white text-center underline font-semibold`}>Login</Text>
+        <View style={tw`flex-row items-center border rounded-xl bg-gray-100 px-3 py-2 mt-4`}>
+          <Ionicons name="lock-closed-outline" size={20} color="gray" style={tw`mr-2`} />
+          <TextInput
+            style={tw`flex-1 text-base`}
+            placeholder="Contraseña"
+            value={pass}
+            onChangeText={setPass}
+            secureTextEntry
+          />
+        </View>
 
-        <Text style={tw`text-white`}>Email:</Text>
-        <TextInput
-          style={tw`rounded-xl border w-full text-base px-3 py-2 bg-white`}
-          placeholder="Ingresa tu Correo"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-
-        <Text style={tw`text-white mt-4`}>Contraseña:</Text>
-        <TextInput
-          style={tw`rounded-xl border w-full text-base px-3 py-2 bg-white`}
-          placeholder="Ingresa tu Contraseña"
-          value={pass}
-          onChangeText={setPass}
-          secureTextEntry
-        />
-
-        <TouchableOpacity onPress={() => navigation.navigate('ForgotPass')}>
-          <Text style={tw`text-white mt-2`}>
-            Olvidé la contraseña. <Text style={tw`text-[#95D5B2]`}>Recuperar</Text>
-          </Text>
-        </TouchableOpacity>
+        <View style={tw`flex-row justify-between mt-2`}>
+          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+            <Text style={tw`text-gray-500`}>Sign Up</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('ForgotPass')}>
+            <Text style={tw`text-gray-500`}>Forgot Password?</Text>
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           onPress={handleSubmit}
-          style={tw`bg-green-500 rounded-xl mt-4 text-2xl py-2 justify-center items-center`}
+          style={tw`bg-black rounded-xl mt-4 py-3 justify-center items-center`}
           disabled={loading}
         >
-          <Text style={tw`text-white`}>{loading ? 'Cargando...' : 'Iniciar Sesión'}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={tw`text-white mt-4`}>
-            No tienes cuenta? <Text style={tw`text-[#95D5B2]`}>Regístrate</Text>
-          </Text>
+          <Text style={tw`text-white text-lg font-semibold`}>{loading ? 'Cargando...' : 'Login'}</Text>
         </TouchableOpacity>
       </View>
     </View>

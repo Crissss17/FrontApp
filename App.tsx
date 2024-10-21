@@ -5,6 +5,8 @@ import Login from './pages/Login';
 import TokenScreen from './pages/TokenScreen';
 import { isTokenExpired } from './services/authUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Register from './pages/Register';
+import ForgotPass from './pages/ForgotPass';
 
 const Stack = createStackNavigator();
 
@@ -30,6 +32,8 @@ export default function App() {
       <Stack.Navigator initialRouteName={isAuthenticated ? "TokenScreen" : "Login"}>
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="TokenScreen" component={TokenScreen} />
+        <Stack.Screen name="Register" component={Register} />
+        <Stack.Screen name="ForgotPass" component={ForgotPass} />
       </Stack.Navigator>
     </NavigationContainer>
   );
