@@ -4,8 +4,8 @@ import tw from 'twrnc';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types/types';
-const FondoApp = require('../assets/Fondo_App.png');
+import { RootStackParamList } from '../../types/types';
+const FondoApp = require('../../assets/Fondo_App.png');
 
 const ForgotPass: React.FC = () => {
   const [email, setEmail] = useState('');

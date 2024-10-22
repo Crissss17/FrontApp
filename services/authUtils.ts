@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import jwtDecode from 'jwt-decode';
-import { BASE_URL } from '../config';
+import { BASE_URL, BASE_2_URL } from '../config';
 
 
 
@@ -34,8 +34,6 @@ export const refreshAccessToken = async () => {
     throw new Error('La sesión ha expirado. Por favor, inicia sesión nuevamente.');
   }
 };
-
-
 
 export const makeProtectedRequest = async (url: string, options: RequestInit = {}) => {
   let accessToken = await AsyncStorage.getItem('accessToken');
@@ -80,3 +78,31 @@ export const isTokenExpired = (token: string): boolean => {
     return true;
   }
 };
+
+
+
+
+/*------------CONEXIÓN MS-2 -----------------------
+/*export const validateTokenWithMS2 = async (accessToken: string) => {
+  try {
+    const response = await fetch(`${BASE_2_URL}/auth/validate-token`, {  // Asegúrate de que esta es la URL correcta de tu MS-2
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al validar el token en el microservicio 2');
+    }
+
+    const data = await response.json();
+    return data.valid;  // Suponiendo que el microservicio 2 retorna un campo 'valid' si el token es válido
+  } catch (error) {
+    console.error('Error validando el token en el microservicio 2:', error);
+    return false;
+  }
+};*/
+

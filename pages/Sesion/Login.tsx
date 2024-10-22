@@ -2,15 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Text, TextInput, View, TouchableOpacity, Alert, Platform, ImageBackground } from 'react-native';
 import tw from 'twrnc';
 import Spinner from 'react-native-loading-spinner-overlay';
-import { isTokenExpired, refreshAccessToken, logout } from '../services/authUtils';
+import { isTokenExpired, refreshAccessToken, logout } from '../../services/authUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../types/types'; 
+import { RootStackParamList } from '../../types/types'; 
 import { Ionicons } from '@expo/vector-icons';
 import { toast } from 'react-toastify';
-import { BASE_URL } from '../config';
-const FondoApp = require('../assets/Fondo_App.png');
+import { BASE_URL } from '../../config';
+const FondoApp = require('../../assets/Fondo_App.png');
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -55,6 +55,45 @@ const Login: React.FC = () => {
       console.error('Error en checkSessionOnLoad:', error);
     }
   };
+  /*------------CONEXIÓN MS-2 -------------------
+  /*const checkSessionOnLoad = async () => {
+    try {
+      const accessToken = await AsyncStorage.getItem('accessToken');
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+    
+      if (accessToken && !isTokenExpired(accessToken)) {
+        const isValid = await validateTokenWithMS2(accessToken);  // Validar el token en MS-2
+        if (isValid) {
+          console.log('Token válido. Navegando a TokenScreen');
+          navigation.navigate('TokenScreen', {
+            accessToken: accessToken || '',  // Asegurarse de que nunca sea null
+            refreshToken: refreshToken || ''  // Asegurarse de que nunca sea null
+          });
+        } else {
+          console.log('Token no válido, redirigiendo a Login');
+          logout(navigation);
+        }
+      } else if (refreshToken) {
+        console.log('El accessToken ha expirado, intentando refrescar token...');
+        const newAccessToken = await refreshAccessToken();
+        if (newAccessToken) {
+          console.log('Token refrescado exitosamente');
+          navigation.navigate('TokenScreen', {
+            accessToken: newAccessToken,
+            refreshToken: refreshToken || ''  // Asegurarse de que nunca sea null
+          });
+        } else {
+          logout(navigation);
+        }
+      } else {
+        console.log('Ambos tokens han caducado, redirigiendo a Login');
+        logout(navigation);
+      }
+    } catch (error) {
+      console.error('Error en checkSessionOnLoad:', error);
+    }
+  };*/
+  
 
   const handleLogin = async (email: string, password: string) => {
     try {

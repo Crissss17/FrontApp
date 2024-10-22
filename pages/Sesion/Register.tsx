@@ -4,8 +4,8 @@ import tw from 'twrnc';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../types/types';
-const FondoApp = require('../assets/Fondo_App.png');
+import { RootStackParamList } from '../../types/types';
+const FondoApp = require('../../assets/Fondo_App.png');
 
 type RegisterScreenProp = StackNavigationProp<RootStackParamList, 'Register'>;
 

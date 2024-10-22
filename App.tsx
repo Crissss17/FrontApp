@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import Login from './pages/Login';
-import TokenScreen from './pages/TokenScreen';
+import Login from './pages/Sesion/Login';
+import TokenScreen from './pages/Sesion/TokenScreen';
 import { isTokenExpired } from './services/authUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Register from './pages/Register';
-import ForgotPass from './pages/ForgotPass';
+import Register from './pages/Sesion/Register';
+import ForgotPass from './pages/Sesion/ForgotPass';
+import ListadoCuestionarios from './pages/Cuestionarios/ListadoCuestionarios';
+import Cuestionario from './pages/Cuestionarios/Cuestionario';
 
 const Stack = createStackNavigator();
 
@@ -34,6 +36,8 @@ export default function App() {
         <Stack.Screen name="TokenScreen" component={TokenScreen} />
         <Stack.Screen name="Register" component={Register} />
         <Stack.Screen name="ForgotPass" component={ForgotPass} />
+        <Stack.Screen name="ListadoCuestionarios" component={ListadoCuestionarios} />
+        <Stack.Screen name="Cuestionario" component={Cuestionario} />
       </Stack.Navigator>
     </NavigationContainer>
   );
