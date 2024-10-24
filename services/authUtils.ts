@@ -88,7 +88,7 @@ export const isTokenExpired = (token: string): boolean => {
 //------------CONEXIÓN MS-2 -----------------------
 export const validateTokenWithMS2 = async (accessToken: string) => {
   try {
-    const response = await fetch(`http://localhost:3001/auth/validate-token`, {
+    const response = await fetch(`${BASE_2_URL}/auth/validate-token`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
