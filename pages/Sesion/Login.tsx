@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Text, TextInput, View, TouchableOpacity, Alert, Platform, ImageBackground } from 'react-native';
 import tw from 'twrnc';
 import Spinner from 'react-native-loading-spinner-overlay';
-import { isTokenExpired, refreshAccessToken, logout } from '../../services/authUtils';
+import { isTokenExpired, refreshAccessToken, logout, validateTokenWithMS2 } from '../../services/authUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -28,50 +28,18 @@ const Login: React.FC = () => {
     try {
       const accessToken = await AsyncStorage.getItem('accessToken');
       const refreshToken = await AsyncStorage.getItem('refreshToken');
-  
-      if (accessToken && !isTokenExpired(accessToken)) {
-        console.log('Sesión activa con accessToken válido');
-        navigation.navigate('TokenScreen', {
-          accessToken: accessToken || '',  // Asegurarse de que nunca sea null
-          refreshToken: refreshToken || ''  // Asegurarse de que nunca sea null
-        });
-      } else if (refreshToken) {
-        console.log('El accessToken ha expirado, intentando refrescar token...');
-        const newAccessToken = await refreshAccessToken();
-        if (newAccessToken) {
-          console.log('Token refrescado exitosamente');
-          navigation.navigate('TokenScreen', {
-            accessToken: newAccessToken,
-            refreshToken: refreshToken || ''  // Asegurarse de que nunca sea null
-          });
-        } else {
-          logout(navigation);
-        }
-      } else {
-        console.log('Ambos tokens han caducado, redirigiendo a Login');
-        logout(navigation);
-      }
-    } catch (error) {
-      console.error('Error en checkSessionOnLoad:', error);
-    }
-  };
-  /*------------CONEXIÓN MS-2 -------------------
-  /*const checkSessionOnLoad = async () => {
-    try {
-      const accessToken = await AsyncStorage.getItem('accessToken');
-      const refreshToken = await AsyncStorage.getItem('refreshToken');
-    
+   
       if (accessToken && !isTokenExpired(accessToken)) {
         const isValid = await validateTokenWithMS2(accessToken);  // Validar el token en MS-2
         if (isValid) {
           console.log('Token válido. Navegando a TokenScreen');
           navigation.navigate('TokenScreen', {
-            accessToken: accessToken || '',  // Asegurarse de que nunca sea null
-            refreshToken: refreshToken || ''  // Asegurarse de que nunca sea null
+            accessToken: accessToken || '',  // Asegúrate de que nunca sea null
+            refreshToken: refreshToken || ''  // Asegúrate de que nunca sea null
           });
         } else {
           console.log('Token no válido, redirigiendo a Login');
-          logout(navigation);
+          logout(navigation);  // Si no es válido, cierra sesión
         }
       } else if (refreshToken) {
         console.log('El accessToken ha expirado, intentando refrescar token...');
@@ -91,10 +59,10 @@ const Login: React.FC = () => {
       }
     } catch (error) {
       console.error('Error en checkSessionOnLoad:', error);
+      logout(navigation);  // Si ocurre algún error, cierra sesión
     }
-  };*/
+  };
   
-
   const handleLogin = async (email: string, password: string) => {
     try {
       setLoading(true);

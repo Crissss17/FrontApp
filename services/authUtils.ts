@@ -72,6 +72,8 @@ export const isTokenExpired = (token: string): boolean => {
   try {
     const decoded: any = jwtDecode(token);
     const now = Date.now() / 1000; 
+    console.log('Current time:', now);
+    console.log('Token expiration time:', decoded.exp);
     return decoded.exp < now;
   } catch (error) {
     console.error('Error al decodificar el token:', error);
@@ -82,15 +84,17 @@ export const isTokenExpired = (token: string): boolean => {
 
 
 
-/*------------CONEXIÓN MS-2 -----------------------
-/*export const validateTokenWithMS2 = async (accessToken: string) => {
+
+//------------CONEXIÓN MS-2 -----------------------
+export const validateTokenWithMS2 = async (accessToken: string) => {
   try {
-    const response = await fetch(`${BASE_2_URL}/auth/validate-token`, {  // Asegúrate de que esta es la URL correcta de tu MS-2
+    const response = await fetch(`http://localhost:3001/auth/validate-token`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ token: accessToken }) // Asegúrate de enviar el token correctamente
     });
 
     if (!response.ok) {
@@ -99,10 +103,14 @@ export const isTokenExpired = (token: string): boolean => {
     }
 
     const data = await response.json();
-    return data.valid;  // Suponiendo que el microservicio 2 retorna un campo 'valid' si el token es válido
+    return data.valid;  // Esta parte debe devolver true si el token es válido
   } catch (error) {
     console.error('Error validando el token en el microservicio 2:', error);
-    return false;
+    return false;  // Devuelve false si ocurre algún error
   }
-};*/
+};
+
+
+
+
 

@@ -1,17 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { isTokenExpired, refreshAccessToken } from './authUtils';
 
 export const makeProtectedRequest = async (url: string, options: RequestInit = {}) => {
   try {
     const accessToken = await AsyncStorage.getItem('accessToken');
-    
+
     if (!accessToken) {
-      throw new Error('Token de acceso no encontrado.');
+      throw new Error('No se encontró el token de acceso.');
     }
 
     const headers = {
       ...options.headers,
-      Authorization: `Bearer ${accessToken}`,
+      'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     };
 
@@ -24,7 +23,7 @@ export const makeProtectedRequest = async (url: string, options: RequestInit = {
       throw new Error(`Error en la solicitud: ${response.statusText}`);
     }
 
-    return response.json();  // Procesa la respuesta directamente como JSON
+    return response;
   } catch (error) {
     console.error('Error en la solicitud protegida:', error);
     throw error;

@@ -31,7 +31,7 @@ const TokenScreen: React.FC<{ route: any, navigation: any }> = ({ route, navigat
         </View>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate('ListadoCuestionarios')}
+          onPress={() => navigation.navigate('QuestionnaireList')}
           style={tw`bg-black rounded-lg mt-5 py-3 px-6 justify-center items-center`}
         >
           <Text style={tw`text-white text-lg font-semibold`}>Ir al Listado de Cuestionarios</Text>
