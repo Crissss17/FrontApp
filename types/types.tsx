@@ -1,10 +1,11 @@
 import { createStackNavigator } from '@react-navigation/stack';
 
 export type RootStackParamList = {
-  Login: undefined;  // No recibe parámetros
-  Register: undefined;  // No recibe parámetros
-  ForgotPass: undefined;  // No recibe parámetros
-  TokenScreen: { accessToken: string; refreshToken: string };  // Recibe tokens
+  Login: undefined;  
+  Register: undefined;  
+  ForgotPass: undefined;  
+  HomeLogin: { accessToken: string; refreshToken: string }; 
+  PageToken: { accessToken: string; refreshToken: string };  
   QuestionnaireList: undefined;
   QuestionnaireScreen: { id: string };  
 };

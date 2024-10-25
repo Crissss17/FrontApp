@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, ImageBackground, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
-import { makeProtectedRequest } from '../../services/api-utils';
+import { makeProtectedRequest } from '../../services/authUtils';
 import { BASE_2_URL } from '../../config';
 import tw from 'twrnc';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,10 +59,9 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          questions: updatedQuestions, // Preguntas actualizadas desde el formulario
+          questions: updatedQuestions, 
         }),
       });
-      
 
       if (response.ok) {
         Alert.alert('Cambios guardados', 'El cuestionario se actualizó correctamente.');
@@ -103,18 +102,18 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route }) => {
       style={{ flex: 1, width: '100%', height: '100%' }} 
       resizeMode="cover"
     >
-      <ScrollView contentContainerStyle={tw`flex-1 justify-center items-center`}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16 }}>
         {questionnaire ? (
-          <View style={tw`bg-white p-4 rounded-lg mb-4 w-80 max-w-md`}>
-            <Ionicons name="document-text-outline" size={64} color="gray" style={tw`mb-6 text-center`} />
+          <View style={tw`bg-white p-4 rounded-lg mb-4 w-full max-w-md items-center`}>
+            <Ionicons name="document-text-outline" size={64} color="gray" style={tw`mb-6`} />
             <Text style={tw`text-2xl font-bold mb-4 text-center`}>{questionnaire.name}</Text>
 
             {updatedQuestions.map((question, index) => (
-              <View key={index} style={tw`mb-4`}>
+              <View key={index} style={tw`mb-4 w-full`}>
                 <Text style={tw`text-lg font-semibold`}>Pregunta {index + 1}:</Text>
                 {isEditing ? (
                   <TextInput
-                    style={tw`border p-2 mb-2`}
+                    style={tw`border p-2 mb-2 w-full`}
                     value={question.text}
                     onChangeText={(text) => handleQuestionChange(text, index, 'text')}
                   />
@@ -125,7 +124,7 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route }) => {
                 <Text style={tw`text-lg font-semibold`}>Respuesta:</Text>
                 {isEditing ? (
                   <TextInput
-                    style={tw`border p-2 mb-2`}
+                    style={tw`border p-2 mb-2 w-full`}
                     value={question.answer}
                     onChangeText={(text) => handleQuestionChange(text, index, 'answer')}
                   />
@@ -137,7 +136,7 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route }) => {
 
             <TouchableOpacity
               onPress={handleEditToggle}
-              style={tw`bg-blue-500 rounded-lg mt-5 py-3 px-6 justify-center items-center`}
+              style={tw`bg-black rounded-lg mt-5 py-3 px-6 justify-center items-center w-full`}
             >
               <Text style={tw`text-white text-lg font-semibold`}>{isEditing ? 'Cancelar' : 'Editar'}</Text>
             </TouchableOpacity>
@@ -145,7 +144,7 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route }) => {
             {isEditing && (
               <TouchableOpacity
                 onPress={handleSaveChanges}
-                style={tw`bg-green-500 rounded-lg mt-5 py-3 px-6 justify-center items-center`}
+                style={tw`bg-green-300 rounded-lg mt-5 py-3 px-6 justify-center items-center w-full`}
               >
                 <Text style={tw`text-white text-lg font-semibold`}>Guardar cambios</Text>
               </TouchableOpacity>

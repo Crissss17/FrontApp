@@ -4,7 +4,7 @@ import { BASE_URL, BASE_2_URL } from '../config';
 
 
 
-export const refreshAccessToken = async () => {
+export const refreshAccessToken = async (refreshToken: string) => {
   try {
     const refreshToken = await AsyncStorage.getItem('refreshToken');
     
@@ -35,29 +35,39 @@ export const refreshAccessToken = async () => {
   }
 };
 
+
 export const makeProtectedRequest = async (url: string, options: RequestInit = {}) => {
-  let accessToken = await AsyncStorage.getItem('accessToken');
-
-  if (!accessToken || isTokenExpired(accessToken)) {
-    accessToken = await refreshAccessToken();
+  try {
+    // Obtener el accessToken desde AsyncStorage
+    const accessToken = await AsyncStorage.getItem('accessToken');
+    
     if (!accessToken) {
-      throw new Error('No se pudo obtener un nuevo token.');
+      throw new Error('No access token found');
     }
-  }
 
-  const response = await fetch(url, {
-    ...options,
-    headers: {
+    // Agregar el token de autorización en la cabecera
+    const headers = {
       ...options.headers,
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    };
 
-  if (!response.ok) {
-    throw new Error('Error en la solicitud protegida');
+    // Hacer la solicitud con las opciones y cabeceras adecuadas
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    // Manejar la respuesta
+    if (!response.ok) {
+      throw new Error('Request failed');
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Error en makeProtectedRequest:', error);
+    throw error;
   }
-
-  return response;
 };
 
 export const logout = async (navigation: any) => {
@@ -72,8 +82,8 @@ export const isTokenExpired = (token: string): boolean => {
   try {
     const decoded: any = jwtDecode(token);
     const now = Date.now() / 1000; 
-    console.log('Current time:', now);
-    console.log('Token expiration time:', decoded.exp);
+    //console.log('Current time:', now);
+    //console.log('Token expiration time:', decoded.exp);
     return decoded.exp < now;
   } catch (error) {
     console.error('Error al decodificar el token:', error);

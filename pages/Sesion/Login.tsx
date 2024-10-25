@@ -27,41 +27,38 @@ const Login: React.FC = () => {
   const checkSessionOnLoad = async () => {
     try {
       const accessToken = await AsyncStorage.getItem('accessToken');
-      const refreshToken = await AsyncStorage.getItem('refreshToken');
-   
+      const refreshToken = (await AsyncStorage.getItem('refreshToken')) || ''; // Proporciona un valor por defecto si es null
+    
       if (accessToken && !isTokenExpired(accessToken)) {
-        const isValid = await validateTokenWithMS2(accessToken);  // Validar el token en MS-2
+        const isValid = await validateTokenWithMS2(accessToken);
         if (isValid) {
-          console.log('Token válido. Navegando a TokenScreen');
-          navigation.navigate('TokenScreen', {
-            accessToken: accessToken || '',  // Asegúrate de que nunca sea null
-            refreshToken: refreshToken || ''  // Asegúrate de que nunca sea null
-          });
+          console.log('Token válido. Navegando a HomeLogin');
+          navigation.navigate('HomeLogin', { accessToken, refreshToken });
         } else {
-          console.log('Token no válido, redirigiendo a Login');
-          logout(navigation);  // Si no es válido, cierra sesión
+          console.log('Token no válido. Cerrando sesión.');
+          logout(navigation);
         }
-      } else if (refreshToken) {
+      } else if (refreshToken && !isTokenExpired(refreshToken)) {
         console.log('El accessToken ha expirado, intentando refrescar token...');
-        const newAccessToken = await refreshAccessToken();
+        const newAccessToken = await refreshAccessToken(refreshToken);
         if (newAccessToken) {
           console.log('Token refrescado exitosamente');
-          navigation.navigate('TokenScreen', {
-            accessToken: newAccessToken,
-            refreshToken: refreshToken || ''  // Asegurarse de que nunca sea null
-          });
+          await AsyncStorage.setItem('accessToken', newAccessToken);
+          navigation.navigate('HomeLogin', { accessToken: newAccessToken, refreshToken });
         } else {
+          console.log('No se pudo refrescar el token. Cerrando sesión.');
           logout(navigation);
         }
       } else {
-        console.log('Ambos tokens han caducado, redirigiendo a Login');
+        console.log('Ambos tokens han caducado. Cerrando sesión.');
         logout(navigation);
       }
     } catch (error) {
       console.error('Error en checkSessionOnLoad:', error);
-      logout(navigation);  // Si ocurre algún error, cierra sesión
+      logout(navigation);
     }
   };
+  
   
   const handleLogin = async (email: string, password: string) => {
     try {
@@ -69,7 +66,7 @@ const Login: React.FC = () => {
       console.log('Intentando iniciar sesión con', email);
   
       const response = await Promise.race<Response>([
-        fetch(`${BASE_URL}/auth/login`, {  // Aquí cambiamos BASE_URL
+        fetch(`${BASE_URL}/auth/login`, {  
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -145,14 +142,18 @@ const Login: React.FC = () => {
           />
         </View>
 
+        {/* 
         <View style={tw`flex-row justify-between mt-2`}>
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
             <Text style={tw`text-gray-500`}>Sign Up</Text>
           </TouchableOpacity>
+
           <TouchableOpacity onPress={() => navigation.navigate('ForgotPass')}>
             <Text style={tw`text-gray-500`}>Forgot Password?</Text>
           </TouchableOpacity>
         </View>
+        */}
+
 
         <TouchableOpacity
           onPress={handleSubmit}
