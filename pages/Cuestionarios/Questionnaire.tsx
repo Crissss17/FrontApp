@@ -7,4 +7,5 @@ export interface Questionnaire {
   _id: string;
   name: string;
   questions: Question[];
+  vehiculo?: string;
 }

@@ -6,8 +6,10 @@ export type RootStackParamList = {
   ForgotPass: undefined;  
   HomeLogin: { accessToken: string; refreshToken: string }; 
   PageToken: { accessToken: string; refreshToken: string };  
+  CreateQuestionnaire: undefined;
   QuestionnaireList: undefined;
-  QuestionnaireScreen: { id: string };  
+  QuestionnaireScreen: { id: string }; 
+  
 };
 
 

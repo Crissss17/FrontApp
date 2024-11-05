@@ -65,9 +65,14 @@ const HomeLogin: React.FC<{ route: any, navigation: any }> = ({ route, navigatio
 
           <TouchableOpacity
             onPress={() => handleNavigate('QuestionnaireList')}
-            style={tw`bg-black rounded-lg py-3 px-6 justify-center items-center w-full mb-4`}
-          >
+            style={tw`bg-black rounded-lg py-3 px-6 justify-center items-center w-full mb-4`}>
             <Text style={tw`text-white text-lg font-semibold`}>Listado de Cuestionarios</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => handleNavigate('CreateQuestionnaire')}
+            style={tw`bg-black rounded-lg py-3 px-6 justify-center items-center w-full mb-4`}>
+            <Text style={tw`text-white text-lg font-semibold`}>Crear un Cuestionario</Text>
           </TouchableOpacity>
         </View>
 

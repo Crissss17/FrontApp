@@ -11,6 +11,7 @@ import { isTokenExpired } from './services/authUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import HomeLogin from './pages/Sesion/HomeLogin';
 import { RootStackParamList } from './types/types';
+import CreateQuestionnaire from './pages/Cuestionarios/CreateQuestionnaire';
 
 
 const Stack = createStackNavigator<RootStackParamList>(); 
@@ -39,11 +40,13 @@ export default function App() {
         <Stack.Screen name="HomeLogin" component={HomeLogin} />
         <Stack.Screen name="PageToken" component={PageToken} />
         <Stack.Screen name="QuestionnaireList" component={QuestionnaireList} />
+        <Stack.Screen name="CreateQuestionnaire" component={CreateQuestionnaire} />
         <Stack.Screen
           name="QuestionnaireScreen"
           component={QuestionnaireScreen}
           options={{ title: 'Cuestionario' }}
         />
+        
       </Stack.Navigator>
     </NavigationContainer>
   );

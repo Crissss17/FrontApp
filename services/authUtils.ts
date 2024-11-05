@@ -38,29 +38,34 @@ export const refreshAccessToken = async (refreshToken: string) => {
 
 export const makeProtectedRequest = async (url: string, options: RequestInit = {}) => {
   try {
-    // Obtener el accessToken desde AsyncStorage
-    const accessToken = await AsyncStorage.getItem('accessToken');
+    let accessToken = await AsyncStorage.getItem('accessToken');
+    const refreshToken = await AsyncStorage.getItem('refreshToken'); 
     
     if (!accessToken) {
       throw new Error('No access token found');
     }
-
-    // Agregar el token de autorización en la cabecera
     const headers = {
       ...options.headers,
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     };
 
-    // Hacer la solicitud con las opciones y cabeceras adecuadas
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       ...options,
       headers,
     });
 
-    // Manejar la respuesta
+    if (response.status === 401 && refreshToken) { 
+      console.log("Token expirado. Intentando refrescar el token...");
+      accessToken = await refreshAccessToken(refreshToken); 
+      headers['Authorization'] = `Bearer ${accessToken}`;
+      response = await fetch(url, { ...options, headers });
+    }
+
+    // Agrega el log del status code aquí
     if (!response.ok) {
-      throw new Error('Request failed');
+      console.error(`Error en la solicitud: ${response.status} - ${response.statusText}`);
+      throw new Error(`Request failed with status ${response.status}`);
     }
 
     return response;
@@ -69,6 +74,9 @@ export const makeProtectedRequest = async (url: string, options: RequestInit = {
     throw error;
   }
 };
+
+
+
 
 export const logout = async (navigation: any) => {
   await AsyncStorage.removeItem('accessToken');
@@ -82,18 +90,12 @@ export const isTokenExpired = (token: string): boolean => {
   try {
     const decoded: any = jwtDecode(token);
     const now = Date.now() / 1000; 
-    //console.log('Current time:', now);
-    //console.log('Token expiration time:', decoded.exp);
     return decoded.exp < now;
   } catch (error) {
     console.error('Error al decodificar el token:', error);
     return true;
   }
 };
-
-
-
-
 
 //------------CONEXIÓN MS-2 -----------------------
 export const validateTokenWithMS2 = async (accessToken: string) => {
@@ -104,7 +106,7 @@ export const validateTokenWithMS2 = async (accessToken: string) => {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ token: accessToken }) // Asegúrate de enviar el token correctamente
+      body: JSON.stringify({ token: accessToken }) 
     });
 
     if (!response.ok) {
@@ -113,10 +115,10 @@ export const validateTokenWithMS2 = async (accessToken: string) => {
     }
 
     const data = await response.json();
-    return data.valid;  // Esta parte debe devolver true si el token es válido
+    return data.valid; 
   } catch (error) {
     console.error('Error validando el token en el microservicio 2:', error);
-    return false;  // Devuelve false si ocurre algún error
+    return false;  
   }
 };
 

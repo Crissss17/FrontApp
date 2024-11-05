@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ImageBackground, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';  
+import { useNavigation, useFocusEffect } from '@react-navigation/native';  
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { makeProtectedRequest } from '../../services/authUtils';
 import { Questionnaire } from './Questionnaire';
@@ -21,58 +21,51 @@ type QuestionnaireListScreenNavigationProp = StackNavigationProp<
 const QuestionnaireList = () => {
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingQuestionnaire, setLoadingQuestionnaire] = useState(false); // Estado para el spinner al cargar cuestionario
+  const [loadingQuestionnaire, setLoadingQuestionnaire] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigation = useNavigation<QuestionnaireListScreenNavigationProp>();
 
-  useEffect(() => {
-    const checkAuthenticationAndFetch = async () => {
-      try {
-        const accessToken = await AsyncStorage.getItem('accessToken');
-        if (!accessToken) {
-          console.log('AuthGuard: No se encontró el accessToken. Redirigiendo a Login.');
-          navigation.navigate('Login');
-          return;
-        }
-
-        console.log('AuthGuard: Token encontrado. Cargando cuestionarios.');
-
-        await fetchQuestionnaires();
-      } catch (error) {
-        console.error('Error en authGuard o al obtener los cuestionarios:', error);
-        setError('Error de autenticación o de carga de datos.');
-        setLoading(false);
-      }
-    };
-
-    checkAuthenticationAndFetch();
-  }, []);
-
   const fetchQuestionnaires = async () => {
+    setLoading(true);
     try {
-      console.log('AuthGuard: Enviando token en la solicitud protegida...');
       const response = await makeProtectedRequest(`${BASE_2_URL}/questionnaires`);
       const data = await response.json();
       setQuestionnaires(data);
       setLoading(false);
-      console.log('AuthGuard: Cuestionarios cargados correctamente.');
     } catch (error) {
-      console.error('Error al obtener los cuestionarios:', error);
       setError('Error al obtener los cuestionarios.');
       setLoading(false);
     }
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchQuestionnaires();
+    }, [])
+  );
+
   const handleQuestionnairePress = (id: string) => {
-    setLoadingQuestionnaire(true); 
+    setLoadingQuestionnaire(true);
     setTimeout(() => {
-      setLoadingQuestionnaire(false);  
+      setLoadingQuestionnaire(false);
       navigation.navigate('QuestionnaireScreen', { id });
-    }, 2000);  
+    }, 2000);
+  };
+
+  const isQuestionnaireComplete = (questionnaire: Questionnaire): boolean => {
+    const allAnswered = questionnaire.questions.every(q => q.answer !== '');
+    const vehicleSelected = !!questionnaire.vehiculo && questionnaire.vehiculo !== 'Seleccione un vehículo';
+    return allAnswered && vehicleSelected;
+  };
+
+  const isQuestionnaireEmpty = (questionnaire: Questionnaire): boolean => {
+    const noAnswers = questionnaire.questions.every(q => q.answer === '');
+    const noVehicleSelected = !questionnaire.vehiculo || questionnaire.vehiculo === 'Seleccione un vehículo';
+    return noAnswers && noVehicleSelected;
   };
 
   if (loading) {
-    return <Spinner visible={loading} textContent={'Cargando cuestionarios...'} textStyle={tw`text-white`} />;  // Spinner mientras se cargan los cuestionarios
+    return <Spinner visible={loading} textContent={'Cargando cuestionarios...'} textStyle={tw`text-white`} />;
   }
 
   return (
@@ -87,18 +80,32 @@ const QuestionnaireList = () => {
           <Ionicons name="document-text-outline" size={64} color="gray" style={tw`mb-6`} />
           <Text style={tw`text-2xl text-black mb-4 font-semibold text-center`}>Listado de Cuestionarios</Text>
           {error ? (
-            <Text style={tw`text-red-500`}>{error}</Text>):(
+            <Text style={tw`text-red-500`}>{error}</Text>
+          ) : (
             <>
               {questionnaires.length > 0 ? (
-                questionnaires.map(q => (
-                  <TouchableOpacity 
-                    key={q._id} 
-                    onPress={() => handleQuestionnairePress(q._id)}  // Manejar la navegación con spinner
-                    style={tw`bg-gray-200 p-4 rounded-md mb-4 w-full`}
-                  >
-                    <Text style={tw`text-lg text-black font-semibold`}>{q.name}</Text>
-                  </TouchableOpacity>
-                ))
+                questionnaires.map((q) => {
+                  const isComplete = isQuestionnaireComplete(q);
+                  const isEmpty = isQuestionnaireEmpty(q);
+
+                  return (
+                    <TouchableOpacity
+                      key={q._id}
+                      onPress={() => handleQuestionnairePress(q._id)}
+                      style={tw`p-4 rounded-md mb-4 w-full ${
+                        isComplete 
+                          ? 'bg-green-500' 
+                          : isEmpty 
+                          ? 'bg-gray-400'  // Gris si está vacío
+                          : 'bg-orange-500'  // Naranja si está incompleto
+                      }`}
+                    >
+                      <Text style={tw`text-lg text-white font-semibold`}>
+                        {q.name} {isComplete ? "(Completado)" : isEmpty ? "(Sin respuestas)" : "(Incompleto)"}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })
               ) : (
                 <Text style={tw`text-gray-500`}>No hay cuestionarios disponibles</Text>
               )}
