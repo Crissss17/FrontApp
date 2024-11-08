@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ImageBackground, ScrollView } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';  
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { makeProtectedRequest } from '../../services/authUtils';
-import { Questionnaire } from './Questionnaire';
+import { Questionnaire } from './Questionnaire'; 
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../types/types';
 import tw from 'twrnc'; 
@@ -29,11 +28,15 @@ const QuestionnaireList = () => {
     setLoading(true);
     try {
       const response = await makeProtectedRequest(`${BASE_2_URL}/questionnaires`);
+      if (!response.ok) {
+        throw new Error('Error en la respuesta de la API');
+      }
       const data = await response.json();
       setQuestionnaires(data);
-      setLoading(false);
     } catch (error) {
-      setError('Error al obtener los cuestionarios.');
+      setError('Error al obtener los cuestionarios. Intente nuevamente.');
+      console.error(error);
+    } finally {
       setLoading(false);
     }
   };
@@ -46,23 +49,23 @@ const QuestionnaireList = () => {
 
   const handleQuestionnairePress = (id: string) => {
     setLoadingQuestionnaire(true);
-    setTimeout(() => {
-      setLoadingQuestionnaire(false);
-      navigation.navigate('QuestionnaireScreen', { id });
-    }, 2000);
+    navigation.navigate('QuestionnaireScreen', { id });
+    setLoadingQuestionnaire(false);
   };
 
   const isQuestionnaireComplete = (questionnaire: Questionnaire): boolean => {
-    const allAnswered = questionnaire.questions.every(q => q.answer !== '');
+    if (!questionnaire || !questionnaire.sections) return false; 
+    const allAnswered = questionnaire.sections.flatMap(section => section.questions).every(q => q.answer !== '');
     const vehicleSelected = !!questionnaire.vehiculo && questionnaire.vehiculo !== 'Seleccione un vehículo';
     return allAnswered && vehicleSelected;
   };
-
+  
   const isQuestionnaireEmpty = (questionnaire: Questionnaire): boolean => {
-    const noAnswers = questionnaire.questions.every(q => q.answer === '');
-    const noVehicleSelected = !questionnaire.vehiculo || questionnaire.vehiculo === 'Seleccione un vehículo';
-    return noAnswers && noVehicleSelected;
+    if (!questionnaire || !questionnaire.sections) return true; 
+    const noAnswers = questionnaire.sections.flatMap(section => section.questions).every(q => q.answer === '');
+    return noAnswers && !questionnaire.vehiculo; 
   };
+  
 
   if (loading) {
     return <Spinner visible={loading} textContent={'Cargando cuestionarios...'} textStyle={tw`text-white`} />;
@@ -87,21 +90,17 @@ const QuestionnaireList = () => {
                 questionnaires.map((q) => {
                   const isComplete = isQuestionnaireComplete(q);
                   const isEmpty = isQuestionnaireEmpty(q);
+                  const backgroundColor = isComplete ? 'bg-green-500' : isEmpty ? 'bg-gray-400' : 'bg-orange-500';
+                  const statusText = isComplete ? "Completo" : isEmpty ? "Sin Respuestas" : "Incompleto";
 
                   return (
                     <TouchableOpacity
                       key={q._id}
                       onPress={() => handleQuestionnairePress(q._id)}
-                      style={tw`p-4 rounded-md mb-4 w-full ${
-                        isComplete 
-                          ? 'bg-green-500' 
-                          : isEmpty 
-                          ? 'bg-gray-400'  // Gris si está vacío
-                          : 'bg-orange-500'  // Naranja si está incompleto
-                      }`}
+                      style={tw`p-4 rounded-md mb-4 w-full ${backgroundColor}`}
                     >
                       <Text style={tw`text-lg text-white font-semibold`}>
-                        {q.name} {isComplete ? "(Completado)" : isEmpty ? "(Sin respuestas)" : "(Incompleto)"}
+                        {q.name} ({statusText})
                       </Text>
                     </TouchableOpacity>
                   );

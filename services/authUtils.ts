@@ -12,7 +12,7 @@ export const refreshAccessToken = async (refreshToken: string) => {
       throw new Error('No hay refresh token disponible.');
     }
 
-    const response = await fetch(`${BASE_URL}/auth/refresh-token`, {  // Aquí también cambiamos BASE_URL
+    const response = await fetch(`${BASE_URL}/auth/refresh-token`, {  
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -74,8 +74,6 @@ export const makeProtectedRequest = async (url: string, options: RequestInit = {
     throw error;
   }
 };
-
-
 
 
 export const logout = async (navigation: any) => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Alert, TouchableOpacity, ImageBackground } from 'react-native';
+import { View, Text, ScrollView, Alert, TouchableOpacity, ImageBackground, TextInput } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { StackScreenProps } from '@react-navigation/stack';
 import { makeProtectedRequest } from '../../services/authUtils';
@@ -7,28 +7,18 @@ import { BASE_2_URL } from '../../config';
 import tw from 'twrnc';
 import { Ionicons } from '@expo/vector-icons';
 import * as Progress from 'react-native-progress';
+import { Questionnaire, Section } from './Questionnaire';  // Importa las interfaces
 
 const FondoApp = require('../../assets/Fondo_App.png');
 
+// Define el tipo de parámetros para el stack de navegación
 type RootStackParamList = {
   QuestionnaireScreen: { id: string };
   QuestionnaireList: undefined;
 };
 
+// Define el tipo de props para la pantalla
 type QuestionnaireScreenProps = StackScreenProps<RootStackParamList, 'QuestionnaireScreen'>;
-
-interface Question {
-  text: string;
-  answer: 'Sí' | 'No' | '';
-  _id: string;
-}
-
-interface Questionnaire {
-  _id: string;
-  name: string;
-  questions: Question[];
-  vehiculo?: string;
-}
 
 const vehicles = ["Seleccione un vehículo", "Camioneta", "Auto", "Camión", "Moto", "Otro"];
 
@@ -44,7 +34,6 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route, naviga
       try {
         const response = await makeProtectedRequest(`${BASE_2_URL}/questionnaires/${id}`);
         const data = await response.json();
-
         setQuestionnaire(data);
         setSelectedVehicle(data.vehiculo || "Seleccione un vehículo");
         setLoading(false);
@@ -56,19 +45,21 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route, naviga
     fetchQuestionnaire();
   }, [id]);
 
-  const handleAnswer = (index: number, answer: 'Sí' | 'No' | '') => {
+  const handleAnswer = (sectionIndex: number, questionIndex: number, answer: string) => {
     if (questionnaire) {
-      const newQuestions = [...questionnaire.questions];
-      newQuestions[index].answer = answer;
-      setQuestionnaire({ ...questionnaire, questions: newQuestions });
+      const newSections = [...questionnaire.sections];
+      newSections[sectionIndex].questions[questionIndex].answer = answer;
+      setQuestionnaire({ ...questionnaire, sections: newSections });
     }
   };
 
   const handleSaveChanges = async () => {
     if (!questionnaire) return;
 
-    const unanswered = questionnaire.questions.filter((q) => q.answer === '');
-    const hasUnanswered = unanswered.length > 0;
+    const unansweredQuestions = questionnaire.sections.flatMap(section => 
+      section.questions.filter(q => q.answer === '')
+    );
+    const hasUnanswered = unansweredQuestions.length > 0;
 
     if (hasUnanswered) {
       Alert.alert(
@@ -102,7 +93,7 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route, naviga
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          questions: questionnaire.questions,
+          sections: questionnaire.sections,
           vehiculo: selectedVehicle === "Seleccione un vehículo" ? "" : selectedVehicle,
         }),
       });
@@ -118,13 +109,17 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route, naviga
     }
   };
 
-  const progress = questionnaire ? (questionnaire.questions.filter(q => q.answer !== '').length + (selectedVehicle !== "Seleccione un vehículo" ? 1 : 0)) / (questionnaire.questions.length + 1)
-  : 0;
-    const hasUnansweredQuestions = questionnaire?.questions.some(q => q.answer === '') || false;
+  const totalQuestions = questionnaire ? questionnaire.sections.reduce((sum, section) => sum + section.questions.length, 0) : 0;
+  const answeredQuestions = questionnaire ? questionnaire.sections.reduce((sum, section) => sum + section.questions.filter(q => q.answer !== '').length, 0) : 0;
+  const progress = questionnaire ? (answeredQuestions + (selectedVehicle !== "Seleccione un vehículo" ? 1 : 0)) / (totalQuestions + 1) : 0;
+
+  const hasUnansweredQuestions = totalQuestions > answeredQuestions;
   const hasNoVehicleSelected = selectedVehicle === "Seleccione un vehículo";
   const isReadyToSubmit = !hasUnansweredQuestions && !hasNoVehicleSelected;
 
-  const unansweredQuestions = questionnaire?.questions.filter((q) => q.answer === '') || [];
+  const unansweredQuestions = questionnaire ? questionnaire.sections.flatMap(section => 
+    section.questions.filter(q => q.answer === '')
+  ) : [];
 
   return (
     <ImageBackground source={FondoApp} style={{ flex: 1, width: '100%', height: '100%' }} resizeMode="cover">
@@ -154,29 +149,37 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route, naviga
                 </View>
               </View>
 
-              {questionnaire?.questions.map((question, index) => (
-                <View key={question._id} style={tw`mb-4 w-full`}>
-                  <Text style={tw`text-lg font-semibold`}>Pregunta {index + 1}: {question.text}</Text>
-                  <View style={tw`flex-row mt-2`}>
-                    <TouchableOpacity
-                      style={[
-                        tw`px-4 py-2 rounded-lg mr-2`, 
-                        question.answer === 'Sí' ? tw`bg-blue-500` : tw`bg-gray-300`
-                      ]}
-                      onPress={() => handleAnswer(index, question.answer === 'Sí' ? '' : 'Sí')}
-                    >
-                      <Text style={tw`text-white text-lg`}>Sí</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        tw`px-4 py-2 rounded-lg`,
-                        question.answer === 'No' ? tw`bg-red-500` : tw`bg-gray-300`
-                      ]}
-                      onPress={() => handleAnswer(index, question.answer === 'No' ? '' : 'No')}
-                    >
-                      <Text style={tw`text-white text-lg`}>No</Text>
-                    </TouchableOpacity>
-                  </View>
+              {questionnaire?.sections.map((section, sectionIndex) => (
+                <View key={sectionIndex} style={tw`mb-6 w-full`}>
+                  <Text style={tw`text-xl font-bold mb-4`}>Sección {sectionIndex + 1}: {section.name}</Text>
+                  {section.questions.map((question, questionIndex) => (
+                    <View key={question._id} style={tw`mb-4`}>
+                      <Text style={tw`text-lg font-semibold`}>Pregunta {questionIndex + 1}.{sectionIndex + 1}: {question.text}</Text>
+                      {question.type === 'Texto' ? (
+                        <TextInput
+                          style={tw`border p-2 rounded`}
+                          placeholder="Escriba su respuesta aquí"
+                          value={question.answer === '' ? '' : question.answer}
+                          onChangeText={(text) => handleAnswer(sectionIndex, questionIndex, text)}
+                        />
+                      ) : (
+                        <View style={tw`flex-row mt-2`}>
+                          <TouchableOpacity
+                            style={[tw`px-4 py-2 rounded-lg mr-2`, question.answer === 'Sí' ? tw`bg-blue-500` : tw`bg-gray-300`]}
+                            onPress={() => handleAnswer(sectionIndex, questionIndex, question.answer === 'Sí' ? '' : 'Sí')}
+                          >
+                            <Text style={tw`text-white text-lg`}>Sí</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[tw`px-4 py-2 rounded-lg`, question.answer === 'No' ? tw`bg-red-500` : tw`bg-gray-300`]}
+                            onPress={() => handleAnswer(sectionIndex, questionIndex, question.answer === 'No' ? '' : 'No')}
+                          >
+                            <Text style={tw`text-white text-lg`}>No</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  ))}
                 </View>
               ))}
 
@@ -190,29 +193,25 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route, naviga
                   {isReadyToSubmit
                     ? "Listo para enviar"
                     : hasNoVehicleSelected && hasUnansweredQuestions
-                    ? `Respuestas faltantes: ${unansweredQuestions.length+1}`
+                    ? `Respuestas faltantes: ${totalQuestions - answeredQuestions + 1}`
                     : hasNoVehicleSelected
                     ? "Seleccione vehículo"
-                    : `Respuestas faltantes: ${unansweredQuestions.length}`}
+                    : `Respuestas faltantes: ${totalQuestions - answeredQuestions}`}
                 </Text>
               </View>
 
-              {!isReadyToSubmit && unansweredQuestions.length > 0 && (
-                <View style={tw`w-full mb-4`}>
-                  {unansweredQuestions.map((question, index) => (
-                    <Text key={index} style={tw`text-red-500 text-sm`}>
-                      - {question.text}
-                    </Text>
+              {hasUnansweredQuestions && (
+                <View style={tw`mt-4`}>
+                  {unansweredQuestions.map((q, index) => (
+                    <Text key={index} style={tw`text-base`}>- {q.text}</Text>
                   ))}
-                  {hasNoVehicleSelected && (
-                    <Text style={tw`text-red-500 text-sm`}>- Falta seleccionar vehículo</Text>
-                  )}
+                  <Text style={tw`text-base`}>- Tipo de vehículo: {selectedVehicle}</Text>
                 </View>
               )}
 
               <TouchableOpacity
                 onPress={handleSaveChanges}
-                style={tw`bg-green-300 rounded-lg mt-5 py-3 px-6 justify-center items-center w-full`}
+                style={tw`bg-green-500 rounded-lg mt-5 py-3 px-6 justify-center items-center w-full`}
               >
                 <Text style={tw`text-white text-lg font-semibold`}>Guardar Cuestionario</Text>
               </TouchableOpacity>
