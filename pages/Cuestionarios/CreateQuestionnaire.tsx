@@ -14,10 +14,12 @@ type CreateQuestionnaireProps = StackScreenProps<RootStackParamList, 'CreateQues
 
 const CreateQuestionnaire: React.FC<CreateQuestionnaireProps> = ({ navigation }) => {
   const [name, setName] = useState('');
-  const [sections, setSections] = useState<Section[]>([{ name: '', questions: [{ text: '', type: 'Sí/No', answer: '', _id: '' }] }]);
+  const [sections, setSections] = useState<Section[]>([
+    { name: '', questions: [{ text: '', type: 'Sí/No', answer: '', _id: 'temp_id_1' }] }
+  ]);
 
   const addSection = () => {
-    setSections([...sections, { name: '', questions: [{ text: '', type: 'Sí/No', answer: '', _id: '' }] }]);
+    setSections([...sections, { name: '', questions: [{ text: '', type: 'Sí/No', answer: '', _id: `temp_id_${sections.length + 1}` }] }]);
   };
 
   const handleSectionNameChange = (text: string, index: number) => {
@@ -28,7 +30,7 @@ const CreateQuestionnaire: React.FC<CreateQuestionnaireProps> = ({ navigation })
 
   const addQuestionToSection = (sectionIndex: number) => {
     const updatedSections = [...sections];
-    updatedSections[sectionIndex].questions.push({ text: '', type: 'Sí/No', answer: '', _id: '' });
+    updatedSections[sectionIndex].questions.push({ text: '', type: 'Sí/No', answer: '', _id: `temp_id_${sectionIndex}_${updatedSections[sectionIndex].questions.length + 1}` });
     setSections(updatedSections);
   };
 
@@ -70,13 +72,19 @@ const CreateQuestionnaire: React.FC<CreateQuestionnaireProps> = ({ navigation })
       return;
     }
 
+    // Limpiar el campo `_id` en cada pregunta antes de enviar
+    const cleanedSections = sections.map(section => ({
+      ...section,
+      questions: section.questions.map(({ _id, ...question }) => question) // Remueve `_id` de cada pregunta
+    }));
+
     try {
       const response = await makeProtectedRequest(`${BASE_2_URL}/questionnaires`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, sections, vehiculo: null }),
+        body: JSON.stringify({ name, sections: cleanedSections, vehiculo: null }),
       });
 
       if (response.ok) {
@@ -120,7 +128,7 @@ const CreateQuestionnaire: React.FC<CreateQuestionnaireProps> = ({ navigation })
               {section.questions.map((question, questionIndex) => (
                 <View key={questionIndex} style={tw`mb-4`}>
                   <Text style={tw`text-lg font-semibold mb-2`}>
-                    Pregunta {questionIndex + 1}.{sectionIndex + 1}:
+                    Pregunta {sectionIndex + 1}.{questionIndex + 1}:
                   </Text>
                   <TextInput
                     style={tw`border p-2 rounded mb-2`}

@@ -2,12 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import jwtDecode from 'jwt-decode';
 import { BASE_URL, BASE_2_URL } from '../config';
 
-
-
 export const refreshAccessToken = async (refreshToken: string) => {
   try {
-    const refreshToken = await AsyncStorage.getItem('refreshToken');
-    
     if (!refreshToken) {
       throw new Error('No hay refresh token disponible.');
     }
@@ -39,30 +35,35 @@ export const refreshAccessToken = async (refreshToken: string) => {
 export const makeProtectedRequest = async (url: string, options: RequestInit = {}) => {
   try {
     let accessToken = await AsyncStorage.getItem('accessToken');
-    const refreshToken = await AsyncStorage.getItem('refreshToken'); 
-    
+    const refreshToken = await AsyncStorage.getItem('refreshToken');
+
     if (!accessToken) {
-      throw new Error('No access token found');
+      throw new Error('El token de acceso es nulo. Se requiere iniciar sesión nuevamente.');
     }
+
     const headers = {
       ...options.headers,
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     };
 
-    let response = await fetch(url, {
-      ...options,
-      headers,
-    });
+    console.log("Haciendo solicitud a:", url); // Para verificar la URL
+    let response = await fetch(url, { ...options, headers });
 
-    if (response.status === 401 && refreshToken) { 
+    if (response.status === 401 && refreshToken) {
       console.log("Token expirado. Intentando refrescar el token...");
-      accessToken = await refreshAccessToken(refreshToken); 
+      accessToken = await refreshAccessToken(refreshToken);
+
+      if (!accessToken) {
+        throw new Error('No se pudo refrescar el token. Se requiere iniciar sesión nuevamente.');
+      }
+
+      await AsyncStorage.setItem('accessToken', accessToken); 
+
       headers['Authorization'] = `Bearer ${accessToken}`;
       response = await fetch(url, { ...options, headers });
     }
 
-    // Agrega el log del status code aquí
     if (!response.ok) {
       console.error(`Error en la solicitud: ${response.status} - ${response.statusText}`);
       throw new Error(`Request failed with status ${response.status}`);
@@ -75,6 +76,30 @@ export const makeProtectedRequest = async (url: string, options: RequestInit = {
   }
 };
 
+
+export const makeRequestWithoutAuth = async (url: string, options: RequestInit = {}) => {
+  try {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    console.log(`Haciendo solicitud a URL: ${url}`);
+    
+    const response = await fetch(url, { ...options, headers });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Error en la solicitud: ${response.status} - ${response.statusText} - Detalles: ${errorText}`);
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Error en makeRequestWithoutAuth:', error);
+    throw error;
+  }
+};
 
 export const logout = async (navigation: any) => {
   await AsyncStorage.removeItem('accessToken');
@@ -119,8 +144,3 @@ export const validateTokenWithMS2 = async (accessToken: string) => {
     return false;  
   }
 };
-
-
-
-
-

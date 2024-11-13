@@ -2,16 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ImageBackground, ScrollView } from 'react-native';
 import tw from 'twrnc';
 import { Ionicons } from '@expo/vector-icons';
-import { logout, isTokenExpired } from '../../services/authUtils'; // Asegúrate de importar isTokenExpired
+import { logout, isTokenExpired } from '../../services/authUtils'; 
 import Spinner from 'react-native-loading-spinner-overlay'; 
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Para manejar los tokens
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
 
 const FondoApp = require('../../assets/Fondo_App.png');
 
 const HomeLogin: React.FC<{ route: any, navigation: any }> = ({ route, navigation }) => {
   const { accessToken = '', refreshToken = '' } = route.params || {};  
   const [loading, setLoading] = useState(false);  
-  const [isTokenChecked, setIsTokenChecked] = useState(false); // Para verificar si ya se revisó el token
+  const [isTokenChecked, setIsTokenChecked] = useState(false); 
 
   // Función para verificar periódicamente el estado del token
   useEffect(() => {
@@ -19,25 +19,25 @@ const HomeLogin: React.FC<{ route: any, navigation: any }> = ({ route, navigatio
       const storedAccessToken = await AsyncStorage.getItem('accessToken');
       if (storedAccessToken && isTokenExpired(storedAccessToken)) {
         console.log('El token ha expirado. Cerrando sesión.');
-        logout(navigation);  // Cierra la sesión si el token ha expirado
+        logout(navigation);  
       } else {
-        setIsTokenChecked(true);  // Token revisado, no ha expirado
+        setIsTokenChecked(true); 
       }
     };
 
-    // Ejecuta la función una vez al montar el componente
     checkTokenExpiration();
 
-    const tokenCheckInterval = setInterval(checkTokenExpiration, 1000); // Verifica cada segundo
+    const tokenCheckInterval = setInterval(checkTokenExpiration, 1000); 
 
-    return () => clearInterval(tokenCheckInterval); // Limpia el intervalo al desmontar el componente
+    return () => clearInterval(tokenCheckInterval); 
   }, [navigation]);
 
-  const handleNavigate = (screen: string) => {
+  const handleNavigate = async (screen: string) => {
     setLoading(true);  
+    const userId = await AsyncStorage.getItem('userId'); // Retrieve userId from AsyncStorage
     setTimeout(() => {  
       setLoading(false);  
-      navigation.navigate(screen, { accessToken, refreshToken });
+      navigation.navigate(screen, { accessToken, refreshToken, userId }); // Pass userId here
     }, 1000);  
   };
 
@@ -73,6 +73,13 @@ const HomeLogin: React.FC<{ route: any, navigation: any }> = ({ route, navigatio
             onPress={() => handleNavigate('CreateQuestionnaire')}
             style={tw`bg-black rounded-lg py-3 px-6 justify-center items-center w-full mb-4`}>
             <Text style={tw`text-white text-lg font-semibold`}>Crear un Cuestionario</Text>
+          </TouchableOpacity>
+
+          {/* Botón para ir a UserHistoryScreen */}
+          <TouchableOpacity
+            onPress={() => handleNavigate('UserHistoryScreen')}
+            style={tw`bg-black rounded-lg py-3 px-6 justify-center items-center w-full mb-4`}>
+            <Text style={tw`text-white text-lg font-semibold`}>Historial de Cuestionarios</Text>
           </TouchableOpacity>
         </View>
 

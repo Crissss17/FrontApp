@@ -3,31 +3,25 @@ import { View, Text, ScrollView, Alert, TouchableOpacity, ImageBackground, TextI
 import { Picker } from '@react-native-picker/picker';
 import { StackScreenProps } from '@react-navigation/stack';
 import { makeProtectedRequest } from '../../services/authUtils';
-import { BASE_2_URL } from '../../config';
+import { BASE_2_URL, BASE_URL } from '../../config';
 import tw from 'twrnc';
-import { Ionicons } from '@expo/vector-icons';
 import * as Progress from 'react-native-progress';
-import { Questionnaire, Section } from './Questionnaire';  // Importa las interfaces
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Questionnaire } from './Questionnaire';
+import { RootStackParamList } from '../../types/types';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 const FondoApp = require('../../assets/Fondo_App.png');
 
-// Define el tipo de parámetros para el stack de navegación
-type RootStackParamList = {
-  QuestionnaireScreen: { id: string };
-  QuestionnaireList: undefined;
-};
-
-// Define el tipo de props para la pantalla
 type QuestionnaireScreenProps = StackScreenProps<RootStackParamList, 'QuestionnaireScreen'>;
-
-const vehicles = ["Seleccione un vehículo", "Camioneta", "Auto", "Camión", "Moto", "Otro"];
 
 const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route, navigation }) => {
   const { id } = route.params;
   const [questionnaire, setQuestionnaire] = useState<Questionnaire | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedVehicle, setSelectedVehicle] = useState<string>("Seleccione un vehículo");
+  const [selectedVehicle, setSelectedVehicle] = useState<string>(""); 
+  const [machineModels, setMachineModels] = useState<string[]>([]);
+  const [progress, setProgress] = useState<number>(0);
+  const [incompleteQuestions, setIncompleteQuestions] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchQuestionnaire = async () => {
@@ -35,15 +29,38 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route, naviga
         const response = await makeProtectedRequest(`${BASE_2_URL}/questionnaires/${id}`);
         const data = await response.json();
         setQuestionnaire(data);
-        setSelectedVehicle(data.vehiculo || "Seleccione un vehículo");
-        setLoading(false);
+        setSelectedVehicle(data.vehiculo || ""); 
       } catch (error) {
-        setError('Error al obtener el cuestionario.');
-        setLoading(false);
+        console.error('Error al obtener el cuestionario:', error);
       }
     };
     fetchQuestionnaire();
   }, [id]);
+
+  useEffect(() => {
+    const fetchMachineModels = async () => {
+      try {
+        const userId = await AsyncStorage.getItem('userId');
+        if (userId) {
+          const response = await makeProtectedRequest(`${BASE_URL}/users/${userId}/machines`);
+          const data = await response.json();
+          const models = data
+            .map((machine: { model: string }) => machine.model)
+            .filter((model: string) => typeof model === 'string' && model.trim().length > 0);
+
+          if (models.length === 0) {
+            models.push("Sin modelos disponibles");
+          }
+
+          setMachineModels(["Seleccione un vehículo", ...models]);
+        }
+      } catch (error) {
+        console.error('Error al obtener los modelos de las máquinas:', error);
+        setMachineModels(["Seleccione un vehículo", "Sin modelos disponibles"]);
+      }
+    };
+    fetchMachineModels();
+  }, []);
 
   const handleAnswer = (sectionIndex: number, questionIndex: number, answer: string) => {
     if (questionnaire) {
@@ -54,38 +71,39 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route, naviga
   };
 
   const handleSaveChanges = async () => {
-    if (!questionnaire) return;
-
-    const unansweredQuestions = questionnaire.sections.flatMap(section => 
-      section.questions.filter(q => q.answer === '')
-    );
-    const hasUnanswered = unansweredQuestions.length > 0;
-
-    if (hasUnanswered) {
+    if (!isQuestionnaireComplete) {
+      // Show alert if questionnaire is incomplete
       Alert.alert(
-        "Algunas preguntas no están respondidas",
-        "¿Estás seguro de que deseas guardar el cuestionario con preguntas sin responder?",
+        "Cuestionario incompleto",
+        "El cuestionario está incompleto. ¿Está seguro de que desea guardarlo?",
         [
           {
             text: "Cancelar",
             style: "cancel",
           },
           {
-            text: "Guardar de todos modos",
+            text: "Guardar",
             onPress: async () => {
+              // Proceed to save if the user confirms
               await saveQuestionnaire();
+              await checkAndSaveCompleteAnswer();
+              navigation.navigate('QuestionnaireList');
             },
           },
-        ]
+        ],
+        { cancelable: true }
       );
     } else {
+      // Directly save if the questionnaire is complete
       await saveQuestionnaire();
+      await checkAndSaveCompleteAnswer();
+      navigation.navigate('QuestionnaireList');
     }
   };
+  
 
   const saveQuestionnaire = async () => {
     if (!questionnaire) return;
-
     try {
       const response = await makeProtectedRequest(`${BASE_2_URL}/questionnaires/${id}`, {
         method: 'PUT',
@@ -94,37 +112,143 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route, naviga
         },
         body: JSON.stringify({
           sections: questionnaire.sections,
-          vehiculo: selectedVehicle === "Seleccione un vehículo" ? "" : selectedVehicle,
+          vehiculo: selectedVehicle === "" || selectedVehicle === "Seleccione un vehículo" ? "" : selectedVehicle,
+        }),
+      });
+  
+      if (response.ok) {
+        Alert.alert('Guardado', 'El cuestionario se ha guardado correctamente en la colección de cuestionarios.');
+      } else {
+        Alert.alert('Error', 'Hubo un problema al guardar el cuestionario.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo guardar el cuestionario en la colección de cuestionarios.');
+    }
+  };
+
+  const checkAndSaveCompleteAnswer = async () => {
+    if (!questionnaire) return;
+
+    const allAnswered = questionnaire.sections.every(section =>
+      section.questions.every(question => question.answer && question.answer.trim() !== '')
+    );
+
+    if (allAnswered) {
+      await saveAnswer();
+      await clearQuestionnaireAnswers();
+    } else {
+      console.log("El cuestionario no está completamente respondido. Solo se guardó en 'questionnaires'.");
+    }
+  };
+
+  const saveAnswer = async () => {
+    if (!questionnaire) return;
+  
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      const response = await makeProtectedRequest(`${BASE_2_URL}/answers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          questionnaireId: id,
+          sections: questionnaire.sections,
+          vehiculo: selectedVehicle === "" || selectedVehicle === "Seleccione un vehículo" ? "" : selectedVehicle,
+        }),
+      });
+  
+      if (response.ok) {
+        Alert.alert('Guardado', 'El cuestionario se ha guardado correctamente en la colección de respuestas.');
+      } else {
+        Alert.alert('Error', 'Hubo un problema al guardar las respuestas.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo guardar el cuestionario en la colección de respuestas.');
+      console.error('Error al guardar respuestas:', error);
+    }
+  };
+
+  const clearQuestionnaireAnswers = async () => {
+    if (!questionnaire) return;
+
+    const clearedSections = questionnaire.sections.map(section => ({
+      ...section,
+      questions: section.questions.map(question => ({
+        ...question,
+        answer: ""
+      }))
+    }));
+
+    try {
+      const response = await makeProtectedRequest(`${BASE_2_URL}/questionnaires/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sections: clearedSections,
+          vehiculo: "",
         }),
       });
 
       if (response.ok) {
-        Alert.alert('Cambios guardados', 'El cuestionario se actualizó correctamente.');
-        navigation.navigate('QuestionnaireList');
-      } else {
-        Alert.alert('Error', 'Hubo un problema al guardar los cambios.');
+        setQuestionnaire({ ...questionnaire, sections: clearedSections });
+        setSelectedVehicle("");
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudo actualizar el cuestionario.');
+      console.error('Error al limpiar las respuestas del cuestionario:', error);
     }
   };
 
-  const totalQuestions = questionnaire ? questionnaire.sections.reduce((sum, section) => sum + section.questions.length, 0) : 0;
-  const answeredQuestions = questionnaire ? questionnaire.sections.reduce((sum, section) => sum + section.questions.filter(q => q.answer !== '').length, 0) : 0;
-  const progress = questionnaire ? (answeredQuestions + (selectedVehicle !== "Seleccione un vehículo" ? 1 : 0)) / (totalQuestions + 1) : 0;
+  const handleVehicleSelection = (itemValue: string) => {
+    setSelectedVehicle(itemValue || "");
+  };
 
-  const hasUnansweredQuestions = totalQuestions > answeredQuestions;
-  const hasNoVehicleSelected = selectedVehicle === "Seleccione un vehículo";
-  const isReadyToSubmit = !hasUnansweredQuestions && !hasNoVehicleSelected;
+  useEffect(() => {
+    if (!questionnaire) return;
 
-  const unansweredQuestions = questionnaire ? questionnaire.sections.flatMap(section => 
-    section.questions.filter(q => q.answer === '')
-  ) : [];
+    const totalQuestions = questionnaire.sections.reduce((sum, section) => sum + section.questions.length, 0);
+    const answeredQuestions = questionnaire.sections.reduce(
+      (sum, section) => sum + section.questions.filter(q => q.answer && q.answer.trim() !== '').length,
+      0
+    );
+
+    const vehicleSelected = selectedVehicle !== "" && selectedVehicle !== "Seleccione un vehículo";
+
+    const calculatedProgress = (answeredQuestions + (vehicleSelected ? 1 : 0)) / (totalQuestions + 1);
+    setProgress(calculatedProgress);
+
+  }, [selectedVehicle, questionnaire]);
+
+
+  useEffect(() => {
+    if (!questionnaire) return;
+
+    const missingQuestions: string[] = [];
+
+    questionnaire.sections.forEach((section) => {
+      section.questions.forEach((question) => {
+        if (!question.answer || question.answer.trim() === "") {
+          missingQuestions.push(question.text);
+        }
+      });
+    });
+
+    if (selectedVehicle === "" || selectedVehicle === "Seleccione un vehículo") { 
+      missingQuestions.push("Seleccione un vehículo");
+    }
+
+    setIncompleteQuestions(missingQuestions);
+  }, [questionnaire, selectedVehicle]);
+
+  const isQuestionnaireComplete = incompleteQuestions.length === 0 && selectedVehicle !== "Seleccione un vehículo";
 
   return (
     <ImageBackground source={FondoApp} style={{ flex: 1, width: '100%', height: '100%' }} resizeMode="cover">
-      <View style={{ flex: 1, alignItems: 'center', paddingHorizontal: 16 }}>
-        <View style={tw`bg-white rounded-lg mb-4 w-full max-w-md`}>
+      <View style={{ flex: 1, alignItems: 'center', paddingHorizontal: 16, paddingTop: 30 }}>
+        <View style={[tw`bg-white rounded-lg mb-4 w-full max-w-md`, { marginTop: 20 }]}>
           <View style={{ position: 'absolute', top: 0, width: '100%', padding: 10, backgroundColor: 'white', zIndex: 10, borderRadius: 10 }}>
             <Text style={tw`text-2xl font-bold mb-4 text-center`}>{questionnaire?.name}</Text>
             <View style={tw`p-2`}>
@@ -140,10 +264,14 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route, naviga
                 <View style={tw`border rounded-lg bg-gray-200`}>
                   <Picker
                     selectedValue={selectedVehicle}
-                    onValueChange={(itemValue) => setSelectedVehicle(itemValue)}
+                    onValueChange={handleVehicleSelection}
                   >
-                    {vehicles.map((vehicle) => (
-                      <Picker.Item key={vehicle} label={vehicle} value={vehicle} />
+                    {machineModels.map((model, index) => (
+                      <Picker.Item 
+                        key={index} 
+                        label={model} 
+                        value={model} 
+                      />
                     ))}
                   </Picker>
                 </View>
@@ -159,7 +287,7 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route, naviga
                         <TextInput
                           style={tw`border p-2 rounded`}
                           placeholder="Escriba su respuesta aquí"
-                          value={question.answer === '' ? '' : question.answer}
+                          value={question.answer || ''}
                           onChangeText={(text) => handleAnswer(sectionIndex, questionIndex, text)}
                         />
                       ) : (
@@ -183,32 +311,30 @@ const QuestionnaireScreen: React.FC<QuestionnaireScreenProps> = ({ route, naviga
                 </View>
               ))}
 
-              <View style={tw`flex-row items-center mb-4 mt-4`}>
-                <Ionicons
-                  name={isReadyToSubmit ? "checkmark-circle" : "ellipse-outline"}
-                  size={32}
-                  color={isReadyToSubmit ? "green" : "gray"}
-                />
-                <Text style={tw`ml-2 text-lg ${isReadyToSubmit ? 'text-green-600' : 'text-gray-500'}`}>
-                  {isReadyToSubmit
-                    ? "Listo para enviar"
-                    : hasNoVehicleSelected && hasUnansweredQuestions
-                    ? `Respuestas faltantes: ${totalQuestions - answeredQuestions + 1}`
-                    : hasNoVehicleSelected
-                    ? "Seleccione vehículo"
-                    : `Respuestas faltantes: ${totalQuestions - answeredQuestions}`}
-                </Text>
-              </View>
-
-              {hasUnansweredQuestions && (
-                <View style={tw`mt-4`}>
-                  {unansweredQuestions.map((q, index) => (
-                    <Text key={index} style={tw`text-base`}>- {q.text}</Text>
-                  ))}
-                  <Text style={tw`text-base`}>- Tipo de vehículo: {selectedVehicle}</Text>
+              <View style={tw`mt-6`}>
+                <Text style={tw`font-bold text-lg`}>Estado del Cuestionario:</Text>
+                <View style={tw`flex-row items-center mt-2`}>
+                  <Text style={tw`text-sm`}>
+                    {isQuestionnaireComplete ? "El cuestionario está completo." : "Faltan preguntas por responder."}
+                  </Text>
+                  {isQuestionnaireComplete && (
+                    <View style={[tw`ml-2 rounded-full bg-green-500`, { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }]}>
+                      <FontAwesome name="check" size={16} color="white" style={tw`text-center`} />
+                    </View>
+                  )}
                 </View>
-              )}
 
+                {!isQuestionnaireComplete && (
+                  <View style={tw`mt-4`}>
+                    <Text style={tw`text-sm font-semibold`}>Preguntas faltantes:</Text>
+                    <View style={tw`bg-gray-200 p-2 rounded-lg mt-2`}>
+                      {incompleteQuestions.map((question, index) => (
+                        <Text key={index} style={tw`text-sm`}>- {question}</Text>
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </View>
               <TouchableOpacity
                 onPress={handleSaveChanges}
                 style={tw`bg-green-500 rounded-lg mt-5 py-3 px-6 justify-center items-center w-full`}

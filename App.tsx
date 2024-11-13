@@ -12,6 +12,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import HomeLogin from './pages/Sesion/HomeLogin';
 import { RootStackParamList } from './types/types';
 import CreateQuestionnaire from './pages/Cuestionarios/CreateQuestionnaire';
+import UserHistoryScreen from './pages/Sesion/UserHistoryScreen';
+import QuestionnaireDetails from './pages/Sesion/QuestionnaireDetails';
 
 
 const Stack = createStackNavigator<RootStackParamList>(); 
@@ -41,12 +43,9 @@ export default function App() {
         <Stack.Screen name="PageToken" component={PageToken} />
         <Stack.Screen name="QuestionnaireList" component={QuestionnaireList} />
         <Stack.Screen name="CreateQuestionnaire" component={CreateQuestionnaire} />
-        <Stack.Screen
-          name="QuestionnaireScreen"
-          component={QuestionnaireScreen}
-          options={{ title: 'Cuestionario' }}
-        />
-        
+        <Stack.Screen name="QuestionnaireScreen" component={QuestionnaireScreen}/>
+        <Stack.Screen name="QuestionnaireDetails" component={QuestionnaireDetails}/>
+        <Stack.Screen name="UserHistoryScreen" component={UserHistoryScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -27,32 +27,21 @@ const Login: React.FC = () => {
   const checkSessionOnLoad = async () => {
     try {
       const accessToken = await AsyncStorage.getItem('accessToken');
-      const refreshToken = (await AsyncStorage.getItem('refreshToken')) || ''; // Proporciona un valor por defecto si es null
-    
-      if (accessToken && !isTokenExpired(accessToken)) {
-        const isValid = await validateTokenWithMS2(accessToken);
-        if (isValid) {
-          console.log('Token válido. Navegando a HomeLogin');
-          navigation.navigate('HomeLogin', { accessToken, refreshToken });
-        } else {
-          console.log('Token no válido. Cerrando sesión.');
-          logout(navigation);
-        }
-      } else if (refreshToken && !isTokenExpired(refreshToken)) {
-        console.log('El accessToken ha expirado, intentando refrescar token...');
-        const newAccessToken = await refreshAccessToken(refreshToken);
-        if (newAccessToken) {
-          console.log('Token refrescado exitosamente');
-          await AsyncStorage.setItem('accessToken', newAccessToken);
-          navigation.navigate('HomeLogin', { accessToken: newAccessToken, refreshToken });
-        } else {
-          console.log('No se pudo refrescar el token. Cerrando sesión.');
-          logout(navigation);
-        }
-      } else {
-        console.log('Ambos tokens han caducado. Cerrando sesión.');
+      const refreshToken = (await AsyncStorage.getItem('refreshToken')) || '';
+      const userId = await AsyncStorage.getItem('userId'); // No uses || '' si quieres verificar si está undefined
+  
+      console.log('Valores obtenidos de AsyncStorage en checkSessionOnLoad:');
+      console.log('accessToken:', accessToken);
+      console.log('refreshToken:', refreshToken);
+      console.log('userId:', userId); // Verifica si se muestra correctamente
+  
+      if (!userId) {
+        console.log('No se encontró el ID de usuario, cerrando sesión.');
         logout(navigation);
+        return;
       }
+  
+      // Restante código de validación de tokens...
     } catch (error) {
       console.error('Error en checkSessionOnLoad:', error);
       logout(navigation);
@@ -60,21 +49,18 @@ const Login: React.FC = () => {
   };
   
   
+  
   const handleLogin = async (email: string, password: string) => {
     try {
       setLoading(true);
-      console.log('Intentando iniciar sesión con', email);
   
-      const response = await Promise.race<Response>([
-        fetch(`${BASE_URL}/auth/login`, {  
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password }),
-        }),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000)) // Timeout de 10 segundos
-      ]);
+      const response = await fetch(`${BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
   
       if (!response.ok) {
         const errorData = await response.json();
@@ -82,27 +68,21 @@ const Login: React.FC = () => {
       }
   
       const data = await response.json();
-      const { accessToken, refreshToken } = data;
+      const { accessToken, refreshToken, userId } = data;
   
       await AsyncStorage.setItem('accessToken', accessToken);
       await AsyncStorage.setItem('refreshToken', refreshToken);
-      setLoading(false);
-      console.log('Inicio de sesión exitoso. Tokens almacenados.');
+      await AsyncStorage.setItem('userId', userId);
   
-      checkSessionOnLoad(); // Verifica la sesión
+      setLoading(false);
+      navigation.navigate('HomeLogin', { accessToken, refreshToken, userId });
     } catch (error: any) {
       setLoading(false);
-      const errorMessage = error?.message || JSON.stringify(error);
-      console.error('Error de autenticación:', errorMessage);
-  
-      if (Platform.OS === 'web') {
-        toast.error(`Hubo un problema con el servidor: ${errorMessage}`);
-      } else {
-        Alert.alert('Error', `Hubo un problema con el servidor: ${errorMessage}`);
-      }
+      console.error('Error de autenticación:', error.message || JSON.stringify(error));
+      Alert.alert('Error', `Hubo un problema con el servidor: ${error.message || 'Error desconocido'}`);
     }
   };
-
+  
   const handleSubmit = () => {
     if (email.trim() === '' || pass.trim() === '') {
       Alert.alert('Error', 'Por favor, llena ambos campos');
