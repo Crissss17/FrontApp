@@ -1,40 +1,36 @@
 {
   "expo": {
-    "name": "CloseIA",
-    "slug": "CloseIA",
+    "name": "QuestApp",
+    "slug": "questapp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourapp.identifier"
+      "bundleIdentifier": "com.yourapp.questapp"
     },
     "android": {
+      "package": "com.tuempresa.tuapp",
+      "versionCode": 2,
       "adaptiveIcon": {
-        "foregroundImage": "",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
       },
-      "package": "com.yourapp.identifier",
-      "permissions": [
-        "INTERNET"
-      ]
+      "permissions": ["INTERNET"]
     },
-    "web": {
-    },
-    "scheme": "closeia",
-    "deepLinking": {
-      "enabled": true
-    },
+    "web": {},
+    "scheme": "questapp",
     "extra": {
       "eas": {
-        "projectId": "035dbf01-1ce9-458a-a9a1-ef7751a2757d"
+        "projectId": "d1e9b9c8-5d87-474c-ae16-e27f22a8ce4f"
       }
-    }
+    },
+    "owner": "thecriss_17"
   }
 }

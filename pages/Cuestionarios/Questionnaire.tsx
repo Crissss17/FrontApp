@@ -6,6 +6,7 @@ export interface Question {
 }
 
 export interface Section {
+  _id: number;
   name: string;
   questions: Question[];
 }

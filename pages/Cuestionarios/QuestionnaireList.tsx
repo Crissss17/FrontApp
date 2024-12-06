@@ -10,7 +10,7 @@ import { BASE_2_URL } from '../../config';
 import { Ionicons } from '@expo/vector-icons';
 import Spinner from 'react-native-loading-spinner-overlay';  
 
-const FondoApp = require('../../assets/Fondo_App.png'); 
+import FondoApp from '../../assets/Fondo_App.png'; 
 
 type QuestionnaireListScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -80,7 +80,7 @@ const QuestionnaireList = () => {
 
       <ScrollView contentContainerStyle={tw`flex-1 justify-center items-center p-4`}>
         <View style={tw`bg-white p-4 rounded-lg mb-4 w-full max-w-md items-center`}>
-          <Ionicons name="document-text-outline" size={64} color="gray" style={tw`mb-6`} />
+          <Ionicons name="clipboard-outline" size={64} color="gray" style={tw`mb-6`} />
           <Text style={tw`text-2xl text-black mb-4 font-semibold text-center`}>Listado de Cuestionarios</Text>
           {error ? (
             <Text style={tw`text-red-500`}>{error}</Text>

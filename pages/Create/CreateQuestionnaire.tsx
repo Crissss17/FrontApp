@@ -1,36 +1,69 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ImageBackground } from 'react-native';
 import tw from 'twrnc';
-import { StackScreenProps } from '@react-navigation/stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { makeProtectedRequest } from '../../services/authUtils';
 import { BASE_2_URL } from '../../config';
 import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../../types/types';
-import { Section } from './Questionnaire';
+import { Types } from 'mongoose';
 
-const FondoApp = require('../../assets/Fondo_App.png');
+import FondoApp from '../../assets/Fondo_App.png';
 
-type CreateQuestionnaireProps = StackScreenProps<RootStackParamList, 'CreateQuestionnaire'>;
+type CreateQuestionnaireProps = NativeStackScreenProps<RootStackParamList, 'CreateQuestionnaire'>;
+
+interface Question {
+  _id: Types.ObjectId;
+  text: string;
+  type: 'Sí/No' | 'Texto';
+  answer: string;
+}
+
+interface Section {
+  _id: Types.ObjectId;
+  name: string;
+  questions: Question[];
+}
 
 const CreateQuestionnaire: React.FC<CreateQuestionnaireProps> = ({ navigation }) => {
   const [name, setName] = useState('');
   const [sections, setSections] = useState<Section[]>([
-    { name: '', questions: [{ text: '', type: 'Sí/No', answer: '', _id: 'temp_id_1' }] }
+    {
+      _id: new Types.ObjectId(),
+      name: '',
+      questions: [
+        { _id: new Types.ObjectId(), text: '', type: 'Sí/No', answer: '' },
+      ],
+    },
   ]);
 
   const addSection = () => {
-    setSections([...sections, { name: '', questions: [{ text: '', type: 'Sí/No', answer: '', _id: `temp_id_${sections.length + 1}` }] }]);
+    setSections([
+      ...sections,
+      {
+        _id: new Types.ObjectId(),
+        name: '',
+        questions: [
+          { _id: new Types.ObjectId(), text: '', type: 'Sí/No', answer: '' },
+        ],
+      },
+    ]);
+  };
+
+  const addQuestionToSection = (sectionIndex: number) => {
+    const updatedSections = [...sections];
+    updatedSections[sectionIndex].questions.push({
+      _id: new Types.ObjectId(),
+      text: '',
+      type: 'Sí/No',
+      answer: '',
+    });
+    setSections(updatedSections);
   };
 
   const handleSectionNameChange = (text: string, index: number) => {
     const updatedSections = [...sections];
     updatedSections[index].name = text;
-    setSections(updatedSections);
-  };
-
-  const addQuestionToSection = (sectionIndex: number) => {
-    const updatedSections = [...sections];
-    updatedSections[sectionIndex].questions.push({ text: '', type: 'Sí/No', answer: '', _id: `temp_id_${sectionIndex}_${updatedSections[sectionIndex].questions.length + 1}` });
     setSections(updatedSections);
   };
 
@@ -64,19 +97,19 @@ const CreateQuestionnaire: React.FC<CreateQuestionnaireProps> = ({ navigation })
       return;
     }
 
-    if (sections.some(section => 
-      !section.name.trim() || 
-      section.questions.some(q => !q.text.trim() || !q.type)
-    )) {
-      Alert.alert('Error', 'Por favor, complete todos los títulos de sección y preguntas antes de guardar.');
+    if (
+      sections.some(
+        (section) =>
+          !section.name.trim() ||
+          section.questions.some((q) => !q.text.trim() || !q.type)
+      )
+    ) {
+      Alert.alert(
+        'Error',
+        'Por favor, complete todos los títulos de sección y preguntas antes de guardar.'
+      );
       return;
     }
-
-    // Limpiar el campo `_id` en cada pregunta antes de enviar
-    const cleanedSections = sections.map(section => ({
-      ...section,
-      questions: section.questions.map(({ _id, ...question }) => question) // Remueve `_id` de cada pregunta
-    }));
 
     try {
       const response = await makeProtectedRequest(`${BASE_2_URL}/questionnaires`, {
@@ -84,18 +117,21 @@ const CreateQuestionnaire: React.FC<CreateQuestionnaireProps> = ({ navigation })
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, sections: cleanedSections, vehiculo: null }),
+        body: JSON.stringify({ name, sections, vehiculo: null }),
       });
 
       if (response.ok) {
         Alert.alert('Cuestionario guardado', 'El cuestionario se ha creado correctamente');
         navigation.navigate('HomeLogin', {
           accessToken: '',
-          refreshToken: ''
+          refreshToken: '',
         });
       } else {
         const errorData = await response.json();
-        Alert.alert('Error', errorData.message || 'Hubo un problema al guardar el cuestionario.');
+        Alert.alert(
+          'Error',
+          errorData.message || 'Hubo un problema al guardar el cuestionario.'
+        );
       }
     } catch (error) {
       Alert.alert('Error', 'No se pudo guardar el cuestionario.');
@@ -103,76 +139,97 @@ const CreateQuestionnaire: React.FC<CreateQuestionnaireProps> = ({ navigation })
   };
 
   return (
-    <ImageBackground source={FondoApp} style={{ flex: 1, width: '100%', height: '100%' }} resizeMode="cover">
-      <ScrollView contentContainerStyle={{ padding: 16, alignItems: 'center' }}>
-        <View style={tw`bg-white p-4 rounded-lg mb-4 w-full max-w-md`}>
-          <Ionicons name="document-text-outline" size={64} color="gray" style={tw`mb-6 self-center`} />
-          <Text style={tw`text-2xl font-bold mb-4 text-center`}>Crear Cuestionario</Text>
-          <Text style={tw`text-lg font-semibold mb-2`}>Nombre del Cuestionario:</Text>
+    <ImageBackground
+      source={FondoApp}
+      style={{ flex: 1, width: '100%', height: '100%' }}
+      resizeMode="cover"
+    >
+      <ScrollView contentContainerStyle={{ padding: 16 }}>
+        <View style={tw`bg-white p-6 rounded-lg shadow-lg mb-4`}>
+          <Ionicons name="document-text-outline" size={64} color="gray" style={tw`self-center mb-4`} />
+          <Text style={tw`text-2xl font-bold text-center mb-6`}>Crear Cuestionario</Text>
           <TextInput
-            style={tw`border p-2 rounded mb-4`}
+            style={tw`border rounded-lg p-3 mb-6`}
             placeholder="Nombre del Cuestionario"
             value={name}
             onChangeText={setName}
           />
 
           {sections.map((section, sectionIndex) => (
-            <View key={sectionIndex} style={tw`mb-10 w-full border-t border-gray-300 pt-4`}>
-              <Text style={tw`text-lg font-semibold mb-2`}>Sección {sectionIndex + 1}: {section.name}</Text>
+            <View key={section._id.toString()} style={tw`border rounded-lg mb-6 p-4 bg-gray-100 shadow-md`}>
+              <Text style={tw`text-lg font-semibold mb-2`}>Sección {sectionIndex + 1}</Text>
               <TextInput
-                style={tw`border p-2 rounded mb-4`}
-                placeholder="Título de la sección"
+                style={tw`border rounded-lg p-2 mb-4`}
+                placeholder="Nombre de la sección"
                 value={section.name}
                 onChangeText={(text) => handleSectionNameChange(text, sectionIndex)}
               />
+
               {section.questions.map((question, questionIndex) => (
-                <View key={questionIndex} style={tw`mb-4`}>
-                  <Text style={tw`text-lg font-semibold mb-2`}>
-                    Pregunta {sectionIndex + 1}.{questionIndex + 1}:
-                  </Text>
+                <View key={question._id.toString()} style={tw`mb-4 bg-white p-3 rounded-lg shadow-md`}>
+                  <Text style={tw`font-semibold`}>Pregunta {questionIndex + 1}:</Text>
                   <TextInput
-                    style={tw`border p-2 rounded mb-2`}
-                    placeholder="Escriba la pregunta aquí"
-                    value={question.text || ''} 
+                    style={tw`border rounded-lg p-2 mt-2`}
+                    placeholder="Escribe la pregunta"
+                    value={question.text}
                     onChangeText={(text) => handleQuestionChange(text, sectionIndex, questionIndex)}
                   />
-                  <Text style={tw`text-sm font-semibold mb-1`}>Tipo de pregunta:</Text>
-                  <View style={tw`flex-row mb-2 justify-between`}>
+                  <View style={tw`flex-row justify-between mt-2`}>
                     <TouchableOpacity
-                      style={[tw`flex-1 p-2 rounded-lg mr-2`, question.type === 'Sí/No' ? tw`bg-blue-500` : tw`bg-gray-300`]}
+                      style={[
+                        tw`flex-1 p-2 rounded-lg mr-2`,
+                        question.type === 'Sí/No' ? tw`bg-blue-500` : tw`bg-gray-300`,
+                      ]}
                       onPress={() => handleQuestionTypeChange('Sí/No', sectionIndex, questionIndex)}
                     >
                       <Text style={tw`text-white text-center`}>Sí/No</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[tw`flex-1 p-2 rounded-lg`, question.type === 'Texto' ? tw`bg-blue-500` : tw`bg-gray-300`]}
+                      style={[
+                        tw`flex-1 p-2 rounded-lg`,
+                        question.type === 'Texto' ? tw`bg-blue-500` : tw`bg-gray-300`,
+                      ]}
                       onPress={() => handleQuestionTypeChange('Texto', sectionIndex, questionIndex)}
                     >
                       <Text style={tw`text-white text-center`}>Texto</Text>
                     </TouchableOpacity>
                   </View>
                   <TouchableOpacity
-                    style={tw`bg-red-500 p-2 rounded-lg items-center mb-4`}
+                    style={tw`bg-red-500 p-2 rounded-lg mt-4`}
                     onPress={() => removeQuestion(sectionIndex, questionIndex)}
                   >
-                    <Text style={tw`text-white`}>Eliminar Pregunta</Text>
+                    <Text style={tw`text-white text-center`}>Eliminar Pregunta</Text>
                   </TouchableOpacity>
                 </View>
               ))}
-              <TouchableOpacity style={tw`bg-blue-500 p-3 rounded-lg mb-4`} onPress={() => addQuestionToSection(sectionIndex)}>
-                <Text style={tw`text-white text-center`}>Añadir Pregunta a esta Sección</Text>
+
+              <TouchableOpacity
+                style={tw`bg-green-500 p-3 rounded-lg mt-4`}
+                onPress={() => addQuestionToSection(sectionIndex)}
+              >
+                <Text style={tw`text-white text-center`}>Añadir Pregunta</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={tw`bg-red-500 p-2 rounded-lg items-center`} onPress={() => removeSection(sectionIndex)}>
-                <Text style={tw`text-white`}>Eliminar Sección</Text>
+
+              <TouchableOpacity
+                style={tw`bg-red-500 p-3 rounded-lg mt-4`}
+                onPress={() => removeSection(sectionIndex)}
+              >
+                <Text style={tw`text-white text-center`}>Eliminar Sección</Text>
               </TouchableOpacity>
             </View>
           ))}
 
-          <TouchableOpacity style={tw`bg-blue-500 p-3 rounded-lg`} onPress={addSection}>
+          <TouchableOpacity
+            style={tw`bg-blue-500 p-3 rounded-lg`}
+            onPress={addSection}
+          >
             <Text style={tw`text-white text-center`}>Añadir Sección</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={tw`bg-green-500 p-3 rounded-lg mt-4`} onPress={handleSave}>
+          <TouchableOpacity
+            style={tw`bg-green-500 p-3 rounded-lg mt-6`}
+            onPress={handleSave}
+          >
             <Text style={tw`text-white text-center`}>Guardar Cuestionario</Text>
           </TouchableOpacity>
         </View>

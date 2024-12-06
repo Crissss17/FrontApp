@@ -6,9 +6,9 @@ import { logout, isTokenExpired } from '../../services/authUtils';
 import Spinner from 'react-native-loading-spinner-overlay'; 
 import AsyncStorage from '@react-native-async-storage/async-storage'; 
 
-const FondoApp = require('../../assets/Fondo_App.png');
+import FondoApp from '../../assets/Fondo_App.png';
 
-const HomeLogin: React.FC<{ route: any, navigation: any }> = ({ route, navigation }) => {
+const Creater: React.FC<{ route: any, navigation: any }> = ({ route, navigation }) => {
   const { accessToken = '', refreshToken = '' } = route.params || {};  
   const [loading, setLoading] = useState(false);  
   const [isTokenChecked, setIsTokenChecked] = useState(false); 
@@ -33,7 +33,6 @@ const HomeLogin: React.FC<{ route: any, navigation: any }> = ({ route, navigatio
   }, [navigation]);
 
   const handleNavigate = async (screen: string) => {
-    setLoading(true);  
     const userId = await AsyncStorage.getItem('userId'); // Retrieve userId from AsyncStorage
     setTimeout(() => {  
       setLoading(false);  
@@ -55,43 +54,24 @@ const HomeLogin: React.FC<{ route: any, navigation: any }> = ({ route, navigatio
       <ScrollView contentContainerStyle={tw`flex-1 justify-center items-center p-4`}>
         <View style={tw`bg-white p-6 rounded-lg mb-8 w-full max-w-md items-center`}>
           <Ionicons name="home-outline" size={64} color="gray" style={tw`mb-6`} />
-          <Text style={tw`text-2xl text-black mb-4 font-semibold text-center`}>Inicio</Text>
+          <Text style={tw`text-2xl text-black mb-4 font-semibold text-center`}>Creador</Text>
 
-          <TouchableOpacity
-            onPress={() => handleNavigate('PageToken')}
-            style={tw`bg-black rounded-lg py-3 px-6 justify-center items-center w-full mb-4`}>
-            <Text style={tw`text-white text-lg font-semibold`}>Ver Token</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => handleNavigate('QuestionnaireList')}
-            style={tw`bg-black rounded-lg py-3 px-6 justify-center items-center w-full mb-4`}>
-            <Text style={tw`text-white text-lg font-semibold`}>Listado de Cuestionarios</Text>
-          </TouchableOpacity>
-
+          
           <TouchableOpacity
             onPress={() => handleNavigate('CreateQuestionnaire')}
             style={tw`bg-black rounded-lg py-3 px-6 justify-center items-center w-full mb-4`}>
             <Text style={tw`text-white text-lg font-semibold`}>Crear un Cuestionario</Text>
           </TouchableOpacity>
 
-          {/* Botón para ir a UserHistoryScreen */}
           <TouchableOpacity
-            onPress={() => handleNavigate('UserHistoryScreen')}
+            onPress={() => handleNavigate('CreateMachine')}
             style={tw`bg-black rounded-lg py-3 px-6 justify-center items-center w-full mb-4`}>
-            <Text style={tw`text-white text-lg font-semibold`}>Historial de Cuestionarios</Text>
+            <Text style={tw`text-white text-lg font-semibold`}>Crear un Vehiculo</Text>
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          onPress={() => logout(navigation)}
-          style={tw`bg-red-500 rounded-lg py-3 px-6 justify-center items-center`}
-        >
-          <Text style={tw`text-white text-lg font-semibold`}>Cerrar Sesión</Text>
-        </TouchableOpacity>
       </ScrollView>
     </ImageBackground>
   );
 };
 
-export default HomeLogin;
+export default Creater;

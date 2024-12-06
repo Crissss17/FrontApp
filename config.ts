@@ -1,2 +1,2 @@
-export const BASE_URL = 'https://dual-liberty-moses-along.trycloudflare.com'; //http://localhost:8082'
-export const BASE_2_URL = 'https://ia-ahead-plains-cayman.trycloudflare.com';  //http://localhost:3001'; 
+export const BASE_URL = 'http://192.168.1.85:8082'; //http://localhost:8082'
+export const BASE_2_URL = 'http://192.168.1.85:3001';  //http://localhost:3001'; 
